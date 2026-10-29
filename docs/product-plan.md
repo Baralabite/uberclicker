@@ -1,6 +1,6 @@
 # UberClicker product plan
 
-Status: device design review, 29 October 2026. UberClicker is a public, noncommercial open-source project under the [MIT license](../LICENSE), which permits commercial reuse. The website design has deployment approval; deployment verification is pending. This is a delivery plan, not a feature availability statement. The separate `gathermesh-lora` reference source remains untouched and is not included here.
+Status: device design review, 29 October 2026. UberClicker is a public, noncommercial open-source project under the [MIT license](../LICENSE), which permits commercial reuse. The website is deployed and verified on GitHub Pages. This is a delivery plan, not a feature availability statement. The separate `gathermesh-lora` reference source remains untouched and is not included here.
 
 ## Product decisions for review
 
@@ -14,13 +14,13 @@ Keep display refresh independent from click/radio handling. Measure button-to-ou
 
 | Gate | Deliverable | Completion evidence |
 | --- | --- | --- |
-| 1 — design review | Device screen/interaction prototype, configuration architecture, marketing website with a real 3D M5 hero responding to the mouse | Website deployment approved; public deployment verification pending. Device interface approval remains pending |
+| 1 — design review | Device screen/interaction prototype, configuration architecture, marketing website with a real 3D M5 hero responding to the mouse | Public website deployed and verified. Device interface approval remains pending |
 | 2 — working device | Clean firmware without GPS; Tx/Rx roles; release/chord input; receiver BLE keyboard; standalone Tx OSC/MIDI/UDP/TCP; staged settings and reset | Hardware tests cover input timing, radio receipt/timeout behavior, reconnects, output failures, and click handling during display refresh |
 | 3 — configuration | Native iOS/Android app using BLE and LAN; browser app for supported browsers; device-hosted fallback; optional account inventory | Shared settings contract, authenticated writes, Apply/Cancel, provisioning recovery, ownership/revocation/reset tests |
 | 4 — distribution | Public repository created; firmware CI, versioned firmware releases, browser USB flasher and user documentation pending | Reproducible CI builds, board-specific release assets/manifest, hashes, clean-device flash/recovery test, actual public links |
 | 5 — charging dock | Parametric OpenSCAD dock with USB connection through its base | Measured M5 fit, USB-C alignment, insertion clearance, retention, cable strain relief, print and charge test |
 
-After device design approval, firmware/app work, release/flasher/documentation work, and measured dock CAD can proceed in parallel. The public repository exists and website deployment is authorized. Website CI does not build firmware. Firmware, apps, releases, a functional flasher, and dock CAD remain pending.
+After device design approval, firmware/app work, release/flasher/documentation work, and measured dock CAD can proceed in parallel. The public repository and verified website are live. Website CI does not build firmware. Firmware, apps, releases, a functional flasher, and dock CAD remain pending.
 
 ## Engineering constraints
 
@@ -39,4 +39,4 @@ User documentation must cover flashing/recovery, pairing, Tx/Rx setup, all stand
 
 ## Publication
 
-The public repository is [Baralabite/uberclicker](https://github.com/Baralabite/uberclicker). The approved website is being deployed to [GitHub Pages](https://baralabite.github.io/uberclicker/), with verification pending. This project operates noncommercially and is MIT licensed. The intended custom domain is `uberclicker.com`; DNS changes remain pending. See [deployment.md](deployment.md) for website CI and domain setup.
+The public repository is [Baralabite/uberclicker](https://github.com/Baralabite/uberclicker). The approved website is live on [GitHub Pages](https://baralabite.github.io/uberclicker/), with production verification completed on 29 October 2026. This project operates noncommercially and is MIT licensed. The intended custom domain is `uberclicker.com`; DNS changes remain pending. See [deployment.md](deployment.md) for verification evidence, website CI and domain setup.

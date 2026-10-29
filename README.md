@@ -5,7 +5,7 @@ An open-source, noncommercial LoRa presentation clicker project built around the
 - [Device interface proposal](docs/device-interface.md) and [interactive screen preview](device-preview.html)
 - [Product plan and delivery gates](docs/product-plan.md)
 - [Configuration, mobile app, and reset architecture](docs/configuration-architecture.md)
-- [Website](https://baralabite.github.io/uberclicker/) (deployment verification pending), [prototype source](website/dist/index.html), and [website design notes](docs/website-design.md)
+- [Live website](https://baralabite.github.io/uberclicker/), [prototype source](website/dist/index.html), and [website design notes](docs/website-design.md)
 - [Deployment and custom-domain guide](docs/deployment.md)
 - [Public repository](https://github.com/Baralabite/uberclicker)
 
@@ -21,4 +21,4 @@ python3 -m http.server 8000 --directory website/dist
 
 Then open [the local preview](http://localhost:8000). The device preview can be opened directly from its HTML file.
 
-**Next gate:** review and approve the device interface. Website deployment is authorized; verification is pending. Firmware, mobile/browser configuration apps, firmware release CI, the functional USB flasher, and the measured charging dock remain pending. Custom-domain DNS has not been changed.
+**Next gate:** review and approve the device interface. The website is deployed and verified on GitHub Pages. Firmware, mobile/browser configuration apps, firmware release CI, the functional USB flasher, and the measured charging dock remain pending. Custom-domain DNS has not been changed.

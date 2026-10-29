@@ -1,6 +1,6 @@
 # UberClicker website design preview
 
-Status: early project and design preview, 29 October 2026. Prepared and reviewed locally, with GitHub Pages publication configured by request.
+Status: early project and design preview, 29 October 2026. Reviewed locally, published to GitHub Pages by request, and verified in production.
 
 ## Direction and scope
 
@@ -91,8 +91,10 @@ Review captures live outside the served directory in `website/qa/`: `desktop-144
 Known limits: this is not a hardware test, production accessibility audit or cross-browser device lab. No native app, actual BLE/LAN session, cloud relay, output protocol, USB HID or firmware behavior was implemented or validated. Approximate geometry is unsuitable for manufacturing.
 
 
-## Publication preparation
+## Publication
 
 The public repository is [Baralabite/uberclicker](https://github.com/Baralabite/uberclicker). The header and footer link directly to it, including a visible source link at mobile widths. Project copy now describes an early, noncommercial, open-source project and retains the visible Design preview indicator and planned-feature caveats. The project uses MIT. The footer links the root license; “noncommercial” describes the project rather than limiting downstream use. MIT permits commercial reuse.
 
-`.github/workflows/pages.yml` runs the small integrity/behavior check and JavaScript syntax checks on Node 24, uploads only `website/dist`, and deploys to GitHub Pages on pushes to main or manual dispatch. The configured public URL is <https://baralabite.github.io/uberclicker/>. No custom-domain CNAME is included.
+`.github/workflows/pages.yml` runs the small integrity/behavior check and JavaScript syntax checks on Node 24, uploads only `website/dist`, and deploys to GitHub Pages on pushes to main or manual dispatch. The live public URL is <https://baralabite.github.io/uberclicker/>. No custom-domain CNAME is included.
+
+Production verification on 29 October 2026 confirmed all 12 published files returned HTTP 200 and matched source bytes under `/uberclicker/`. The real Three.js model rendered and visibly responded to pointer movement. Desktop (1280 × 720) and mobile (390 × 844) had no horizontal overflow or browser console warnings/errors; the sample actions, connection selection and reset disclosure worked. Production screenshots were inspected and saved in ignored `website/qa/`. See [deployment.md](deployment.md) for workflow evidence and domain status.

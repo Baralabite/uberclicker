@@ -1,8 +1,18 @@
 # Website deployment
 
-The public repository is [Baralabite/uberclicker](https://github.com/Baralabite/uberclicker). Website deployment is authorized at [GitHub Pages](https://baralabite.github.io/uberclicker/); initial deployment verification is pending. Device design remains under review. The project operates noncommercially under the MIT license.
+The public repository is [Baralabite/uberclicker](https://github.com/Baralabite/uberclicker). The website is live at [GitHub Pages](https://baralabite.github.io/uberclicker/), verified on 29 October 2026. Device design remains under review. The project operates noncommercially under the MIT license.
 
-GitHub Actions publishes the static `website/dist` site on pushes to `main`, using the repository’s Pages deployment environment. Set Settings → Pages → Source to **GitHub Actions**. This website workflow does not build firmware, create firmware releases, or provide a functional USB flasher. Those remain pending, along with apps and measured dock CAD.
+GitHub Actions publishes the static `website/dist` site on pushes to `main`, using the repository’s Pages deployment environment. Settings → Pages → Source is configured as **GitHub Actions**, with HTTPS enforced and no custom domain. This website workflow does not build firmware, create firmware releases, or provide a functional USB flasher. Those remain pending, along with apps and measured dock CAD.
+
+## Deployment verification
+
+- [Initial deployment run](https://github.com/Baralabite/uberclicker/actions/runs/40829738216) completed successfully.
+- All 12 published files, including HTML, CSS, JavaScript, Three.js, fonts and the fallback illustration, returned HTTP 200 under `/uberclicker/` and matched the local source bytes.
+- The live Three.js model rendered and responded to pointer movement. Header/footer repository links and the MIT license link point to the public repository.
+- Desktop (1280 × 720) and mobile (390 × 844) browser checks found no horizontal overflow or console warnings/errors. Sample Previous/Next actions, connection selection and the factory-reset disclosure worked.
+- Production captures are saved locally in ignored `website/qa/`: `production-desktop.jpg`, `production-model-pointer.jpg` and `production-mobile.jpg`.
+
+A custom-domain setting found during verification redirected visitors to the parked domain. It was cleared to keep the `github.io` address serving the site until domain setup is requested. DNS records were not changed.
 
 ## Connect uberclicker.com
 
