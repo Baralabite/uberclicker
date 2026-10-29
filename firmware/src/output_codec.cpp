@@ -17,6 +17,9 @@ size_t midi(uint8_t type,uint8_t channel,uint8_t number,uint8_t value,bool relea
   if(type>2||!channel||channel>16||number>127||value>127)return 0;
   if(release&&type!=0)return 0;
   out[0]=(type==0?(release?0x80:0x90):type==1?0xb0:0xc0)|(channel-1);out[1]=number;
-  if(type==2)return 2;out[2]=release?0:value;return 3;
+  if (type == 2)
+    return 2;
+  out[2] = release ? 0 : value;
+  return 3;
 }
 }
