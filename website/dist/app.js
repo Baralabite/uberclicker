@@ -15,6 +15,15 @@ document.querySelectorAll('input[name="connection"]').forEach(input => {
     document.querySelector('#connection-detail').textContent = connectionDetails[input.value];
   });
 });
+const buyCountry = document.querySelector('#buy-country');
+function updateBuyLinks() {
+  document.querySelectorAll('.buy-options').forEach(list => {
+    list.hidden = list.id !== buyCountry.value;
+  });
+}
+buyCountry.addEventListener('change', updateBuyLinks);
+updateBuyLinks();
+
 // The informative illustration remains available if modules cannot load.
 setTimeout(() => {
   const stage = document.querySelector('#device-viewport');

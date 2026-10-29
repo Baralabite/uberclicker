@@ -60,6 +60,33 @@
       <div class="config-notes"><div><h3>Native app first.</h3><p>Connect over BLE, or over the local network when the device is on Wi-Fi. A deliberate setup session keeps configuration separate from live control.</p></div><div><h3>A browser alternative.</h3><p>A web app could use BLE in supported browsers. Browser support varies; Safari and iPhone compatibility is not assumed.</p></div><div><h3>Remote, when it’s ready.</h3><p>Account-linked access needs an authenticated cloud relay and a reachable device. It’s a future option, not a connection created by signing in.</p></div></div></div>
       <details class="reset-note"><summary>A clean start with factory reset <span aria-hidden="true">+</span></summary><p>Planned factory reset clears local settings, pairings and network credentials while preserving firmware. Removing a cloud association is a separate step when online. GPS is not used by UberClicker.</p></details>
     </section>
+    <section id="buy" class="buy-section wrap" aria-labelledby="buy-heading">
+      <div class="buy-heading"><div><h2 id="buy-heading">Find where to buy.</h2><p>Shop for the Elecrow ThinkNode M5.</p></div><div class="buy-country"><label for="buy-country">Country / region</label><select id="buy-country" aria-controls="buy-results" aria-describedby="buy-note"><option value="buy-au" selected>Australia</option><option value="buy-nz">New Zealand</option><option value="buy-us">United States</option><option value="buy-eu">Europe</option></select></div></div>
+      <div id="buy-results" aria-live="polite">
+        <ul id="buy-au" class="buy-options" aria-label="Retailers for Australia">
+          <li><a href="https://littlebirdelectronics.com.au/products/thinknode-m5-walkie-talkie-pro-meshtastic-lora-signal-transceiver-esp32-s3-1-54-screen-gps-function-915-mhz"><span><strong>Little Bird Electronics</strong><small>Australian retailer · 915 MHz</small></span><span aria-hidden="true">↗</span></a></li>
+          <li><a href="https://www.elecrow.com/thinknode-m5-meshtastic-lora-signal-transceiver-esp32-s3-1-54-screen-gps-function.html"><span><strong>Elecrow</strong><small>Manufacturer direct · select 915 MHz</small></span><span aria-hidden="true">↗</span></a></li>
+          <li><a href="https://ameridroid.com/products/thinknode-m5-meshtastic-radio-1"><span><strong>ameriDroid</strong><small>US retailer · international shipping · 915 MHz</small></span><span aria-hidden="true">↗</span></a></li>
+        </ul>
+        <ul id="buy-nz" class="buy-options" aria-label="Retailers for New Zealand" hidden>
+          <li><a href="https://littlebirdelectronics.com.au/products/thinknode-m5-walkie-talkie-pro-meshtastic-lora-signal-transceiver-esp32-s3-1-54-screen-gps-function-915-mhz"><span><strong>Little Bird Electronics</strong><small>Australian retailer · serves NZ · 915 MHz</small></span><span aria-hidden="true">↗</span></a></li>
+          <li><a href="https://www.elecrow.com/thinknode-m5-meshtastic-lora-signal-transceiver-esp32-s3-1-54-screen-gps-function.html"><span><strong>Elecrow</strong><small>Manufacturer direct · select 915 MHz</small></span><span aria-hidden="true">↗</span></a></li>
+          <li><a href="https://ameridroid.com/products/thinknode-m5-meshtastic-radio-1"><span><strong>ameriDroid</strong><small>US retailer · international shipping · 915 MHz</small></span><span aria-hidden="true">↗</span></a></li>
+        </ul>
+        <ul id="buy-us" class="buy-options" aria-label="Retailers for the United States" hidden>
+          <li><a href="https://ameridroid.com/products/thinknode-m5-meshtastic-radio-1"><span><strong>ameriDroid</strong><small>US retailer · 915 MHz</small></span><span aria-hidden="true">↗</span></a></li>
+          <li><a href="https://www.robotshop.com/products/thinknode-m5-walkie-talkie-pro-meshtastic-lora-signal-transceiver-esp32-s3-154-screen-gps-915-mhz"><span><strong>RobotShop</strong><small>US storefront · 915 MHz</small></span><span aria-hidden="true">↗</span></a></li>
+          <li><a href="https://www.elecrow.com/thinknode-m5-meshtastic-lora-signal-transceiver-esp32-s3-1-54-screen-gps-function.html"><span><strong>Elecrow</strong><small>Manufacturer direct · select 915 MHz</small></span><span aria-hidden="true">↗</span></a></li>
+        </ul>
+        <ul id="buy-eu" class="buy-options" aria-label="Retailers for Europe" hidden>
+          <li><a href="https://www.elektor.com/products/elecrow-thinknode-m5-meshtastic-lora-transceiver-868-mhz"><span><strong>Elektor</strong><small>European retailer · 868 MHz</small></span><span aria-hidden="true">↗</span></a></li>
+          <li><a href="https://www.passion-radio.com/lpwan-iot/ilm13205d1-3175.html"><span><strong>Passion Radio</strong><small>French retailer · 868 MHz</small></span><span aria-hidden="true">↗</span></a></li>
+          <li><a href="https://www.elecrow.com/thinknode-m5-meshtastic-lora-signal-transceiver-esp32-s3-1-54-screen-gps-function.html"><span><strong>Elecrow</strong><small>Manufacturer direct · select 868 MHz</small></span><span aria-hidden="true">↗</span></a></li>
+        </ul>
+      </div>
+      <noscript><p>Country selection needs JavaScript. Showing retailers for Australia.</p></noscript>
+      <p id="buy-note" class="buy-note">Hardware only: these devices ship with Meshtastic. UberClicker firmware is still in development. Check the radio band, stock, shipping and taxes with the seller, especially for overseas orders. Links checked 29 October 2026; no affiliate links.</p>
+    </section>
     <section class="release-section"><div class="wrap release-inner"><div><span class="small-label">In development</span><h2>The idea is taking shape.</h2><p>UberClicker is a noncommercial, open-source project taking its first steps. This early design preview shows the direction; firmware, apps, hardware validation and release downloads are still ahead.</p></div><a class="button primary" href="#hero-heading">Back to the device <span aria-hidden="true">↑</span></a></div></section>
   </main>
   <footer class="wrap site-footer"><a class="wordmark" href="#" translate="no">UberClicker</a><p>A dedicated control for what comes next.</p><a class="footer-source" href="https://github.com/Baralabite/uberclicker">GitHub repository</a><span>Noncommercial project · <a href="https://github.com/Baralabite/uberclicker/blob/main/LICENSE">MIT licensed</a></span></footer>
