@@ -1,67 +1,195 @@
-# UberClicker device interface proposal
+# Minimal device interface
 
-The recommended direction is **Quiet action-first**: a compact role header, coarse battery indicator, large profile name (“Presenter”) at home, and two short lines of context. The primary label becomes the last action or a condition needing attention. **Status-first** promotes acknowledgement before a local “Ready” label, which means local click handling is ready, not that a remote device is connected. **Split actions** keeps larger Previous / Next labels visible without repeating them in the footer. The preview shows one complete design at a time and keeps each design's selected scenario independently.
+The TX home is deliberately simple: a large **TX**, coarse battery, **AVG** radio
+signal bars, and **connected/paired RX** count. It has no profile, action labels,
+click counter, GPS, charging inference or battery percentage. A missing-receiver
+warning is independent of the average: two strong receivers must not hide a third
+unreachable receiver. [Open the review](../device-preview.html).
 
-This is a reviewable interface proposal. It does not connect to a device, configure a real account, emit a key, or send a network command. Browser interactions are instantaneous; the existing e-paper full refresh takes approximately two seconds. The prototype deliberately has no progress animation or rapidly changing telemetry.
+![Actual minimal TX renderer examples](../designs/firmware/tx-review-sheet.png)
 
-## Display and controls
+These are exact 200×200 firmware framebuffer renders with demonstration values,
+not hardware measurements. Rows show all fresh / partial offline, unknown / menu,
+and mixed receiver status / a later page. The browser labels its data as fixtures.
+**Minimal TX** is implemented; **Count first** and **Larger count** are review
+variations using the same bitmap pixels. Earlier action-first proposals remain
+[archived](../designs/device-interface-proposals.html) and do not describe this UI.
 
-- The source display is a 200 × 200 monochrome GxEPD2_154_D67 panel. Each preview canvas has exactly those logical dimensions and is enlarged only for review. Device artwork uses black and white in both host themes.
-- The screen uses approximately 12 px horizontal margins, 24–28 px primary labels and 14–16 px context where possible. Compact menu/footer text is 11–13 px. Battery is a coarse bar, with no percentage or charging inference. Voltage thresholds need hardware calibration.
-- Two abstract controls are called B1 and B2. Their location and enclosure are intentionally unspecified. The existing rotary power/brightness control remains physical; this proposal does not pretend e-paper has a software brightness slider. GPS contributes no home-screen information.
-- On the presentation screen, release B1 for Previous and B2 for Next. A simultaneous two-button gesture cancels the pending individual click and opens Menu. No action repeats while a button is held. Firmware needs debounce, a short chord-detection window and an input state machine so releasing the first button in a chord cannot emit a stray click.
-- In Menu, B1 moves and B2 selects. Both returns home. Modes are configured through the app; the preview's mode selector is a review control. The browser offers a separate Both button to simulate a physical chord without assuming button geometry. Keyboard activation also acts on release.
-- Main Menu has Configure, Device and Back. Configure contains App setup, LAN setup, Wi-Fi fallback and Back. Device contains Pair receiver, Factory reset and Back. Four rows maximum preserve readable spacing. Setup screens visibly say “Clicks paused”. The primary screen has no slide number, click count, GPS, RSSI, diagnostic dashboard or heartbeat claim.
-- In receiver mode, individual physical buttons refresh local status and emit no presentation/output command. Use the preview's Last action scenario to simulate an incoming click, separately from physical-button behavior.
+## Signal and count semantics
 
-## What the screen can truthfully say
+Core supplies configured receiver membership and `radio_health::Observation` data
+through `Snapshot.receivers[8]`. `receiverRosterKnown` means the list came from
+committed settings. `linkMonitoringAvailable` means the radio monitor is available.
+No UI timer, cue send, cached acknowledgement or unauthenticated RSSI can create a
+connected receiver. Defaults are unknown.
 
-| Scenario | Wording | Meaning |
-| --- | --- | --- |
-| LoRa transmitter, before an ACK | No acknowledgement yet | The existing protocol has no heartbeat; this is not a connection indicator. |
-| LoRa transmitter, ACK received | Last click acknowledged | A receiver acknowledged receipt. It does not prove the presentation advanced or an output succeeded. |
-| LoRa transmitter, timeout | Unconfirmed / Delivery is unknown | A packet may have arrived without its acknowledgement. Do not automatically resend a presentation command just because the ACK was lost. |
-| LoRa receiver | Last received / Output unverified | Receipt and downstream output are separate facts. |
-| Receiver without recent activity | Link unknown / No link heartbeat | Silence cannot establish that the transmitter is offline. |
-| Direct OSC concept | Last command sent / Delivery unverified | Local send completion does not establish target application behavior. |
-| USB keyboard concept | Key event sent / Host action unverified | A future HID report does not establish host application behavior. USB home remains explicitly a concept requiring hardware checks. |
+A receiver counts as connected only if it is paired, has a nonempty unique ID,
+and core marks it **Connected and fresh**. Unpaired slots, duplicate IDs and stale
+Connected samples are excluded. Core only refreshes observations on accepted
+fresh authenticated radio traffic/probe responses. `radio_health.h` owns its
+elapsed-time policy and rollover-safe checks. Probe spacing depends on actual
+packet airtime; freshness allows a complete round across paired receivers.
+An explicit missed probe or expired observation is Offline; an initial receiver
+without a response or completed probe is Unknown.
 
-LoRa transmitter and receiver are current source roles. Direct Wi-Fi OSC/UDP/TCP and MIDI are proposed outputs; MIDI transport is still undecided. The OSC example is UDP, not a guarantee that every proposed transport has been implemented. USB currently provides programming/serial access in the reference source, which does not establish USB HID or USB MIDI support.
+Connected means recently confirmed by authenticated radio traffic within that
+window. It is not a continuous socket, a guarantee that the next cue arrives,
+or proof of application effect. Offline means not recently confirmed; it does
+not prove power is off. Busy radio management or interference can also prevent a
+fresh response. Actual freshness/range and probe timing require physical tests.
 
-The requested USB keyboard behavior should be available as a receiver output and as a standalone clicker output, subject to hardware validation. ESP32-S3 native USB uses GPIO19/20, which the current source assigns to GPS. Removing GPS from the UI does not establish that the board's USB-C connector exposes those native USB pins; it may expose only a USB-to-UART bridge. Verify the board schematic, connector path and firmware pin allocation before choosing implementation hardware. The preview labels USB as a proposal and does not report it as ready.
+**AVG** is the integer arithmetic mean of RSSI dBm measured at TX from fresh,
+connected paired receivers that have a valid signal sample. The renderer accepts
+reported RSSI from −160 through 0 dBm, excluding missing/invalid values. It maps
+the mean into four coarse bands: ≤−115, ≤−100, ≤−85, and >−85 dBm. These are display
+bands, not a calibrated distance, delivery probability or range estimate. A fresh
+receiver with unknown RSSI can count as connected while contributing no average.
+No eligible sample shows `?`, not zero signal or a fabricated measurement.
 
-## Configuration and pairing proposals
+The home shows `?/? RX` when membership is unknown, `?/N RX` when monitoring is
+unavailable, and `0/0 RX` only for a known empty pairing list. Missing receivers
+produce a separate inverted **N RX OFFLINE**, **N RX UNKNOWN**, or **N RX MISSING**
+line. Thus an average of four bars can coexist with `2/3 RX` and `1 RX OFFLINE`.
+The battery symbol is unknown/low/medium/high from core voltage bands; these bands
+still need physical calibration. No charging or remaining-runtime claim is made.
 
-The primary onboarding path is the native UberClicker app over BLE. The device setup screen says “Open UberClicker app” and shows a visible device identity and pairing code. The preview's **UberClicker A7** and **482 916** are demonstration values, not credentials or a working pairing flow. The native app can use the LAN when the device is already connected to Wi-Fi; the preview's `http://192.168.1.42` is an example device address.
+## Two buttons and the three-item TX menu
 
-A web app can offer BLE setup where browser support permits and account linking as an alternative. iOS Safari and Chrome do not provide native Web Bluetooth, so account linking or the native app must cover that route. Account linking also needs an explicit device authorization and ownership design; it is not implied by joining the same LAN.
+B1 is GPIO21 and B2 GPIO14, active low. At TX home, a debounced release still
+requests Previous or Next, with no held repeat. The paper stays quiet: it does
+not redraw a last-action message after each cue. A chord opens Menu only after
+both buttons debounce and are released; raw overlap suppresses individual cues.
+Buttons held at startup must first be released.
 
-The optional Wi-Fi fallback is a local device hotspot, illustrated as **UberClicker-Setup**, followed by `192.168.4.1`. Its credentials, authentication, captive portal behavior and lifecycle need implementation design. No QR is shown because there is no real setup payload to encode.
+The TX menu contains exactly:
 
-The reference LoRa protocol uses a matching one-byte channel, not authenticated pairing. The proposed Pair receiver screen sketches a same-code confirmation on both devices. Device identities, key provisioning, binding, replay resistance, unpairing and recovery remain protocol work; the screen does not claim the current channel check supplies them.
+1. **Receiver status**
+2. **Pair new RX**
+3. **Factory reset**
 
-## Factory reset
+B1 moves, B2 selects, Both returns home. Menus pause cues. Receiver status shows
+three paired receivers per page: name, full ID and fresh RSSI, **Offline** or
+**Unknown**. B1 advances pages, B2 returns to Menu, Both returns home. Invalid or
+stale samples never appear as current RSSI. There are no routine profile, device,
+LAN, route, account or firmware-update menu entries.
 
-Factory reset is a deliberate action under Device. It opens **Erase settings?** with **Cancel selected** by default. B1 changes between Cancel and Erase; B2 selects. Selecting Cancel leaves settings intact. Selecting Erase arms a second confirmation: hold both buttons continuously for approximately three seconds; either individual button cancels, and releasing early cancels the hold. Confirmation should clear local Wi-Fi credentials, BLE bonds, app pairing and profiles, then return to onboarding. The browser demonstrates this using its own local scenario state only. Holding both from the initial Cancel selection cannot bypass the choice.
+Pair new RX opens the physically authorized native BLE setup window. The app
+handles adding a receiver and can manage existing receivers during that window;
+opening it alone does not add a receiver or change cue routing. Initial claim and
+pairing keep their required actual device identity/passkey screens. Either button
+requests setup exit, while output remains paused until the service actually exits.
+Native BLE is sufficient; browser USB flashing remains a separate required path.
 
-Remote account unlink is separate, especially when the device is offline. The reset screen explicitly calls this out. A production app must explain any remaining server association and provide an account-side unlink/recovery action. Reset must not silently promise deletion from a remote account it cannot reach.
+RX buttons never generate cues. Its local menu retains **App setup**, **Factory
+reset**, **Back** for initial pairing and physical recovery. During a remote edit
+it displays **Managed by TX / Cues paused** with the authenticated controller ID;
+Both still opens that local recovery path. Repeated status snapshots do not eject
+the user from reset confirmation.
 
-## Preview and verification
+## Deliberate reset and exceptional recovery
 
-Open [device-preview.html](../device-preview.html) in a browser for the carousel and interactions. No build, package install or server is needed to view it. The editable design source is [designs/device-interface.html](../designs/device-interface.html); the standalone preview includes the runtime shell that provides the carousel and local state storage.
+Factory reset starts on **Cancel**. B1 selects Erase, B2 arms it, then both must
+remain continuously held for three seconds after debounce. Early raw release,
+a short chord, an individual button or leaving confirmation cancels without
+leaking a cue. The UI emits one reset request and never claims a successful wipe
+merely because the hold completed. Core owns persistence, bond removal and restart.
 
-After editing the source, run this command from the repository root with Python 3:
+`ConfigStatus.recoveryRequired` maps to `Snapshot.recoveryRequired`. Unsupported
+or damaged settings show **Recovery / Claim/config blocked**, pause cues, and
+expose only **Factory reset / Back** through Both. App authorization cannot bypass
+this. The guarded reset preserves firmware while clearing local settings,
+credentials, profiles, controller keys and bonds. A local reset cannot delete an
+offline cloud record; no account service is required or implemented.
+
+Firmware updates start from the local authorized BLE app: open physical setup,
+connect, then choose **Open update screen**. The clicker still requires physical
+**B1 Check** and **B1 Install**. The app requests the screen only; it cannot check,
+download or write firmware, and remote LoRa administration cannot open it. Busy
+updates suppress ordinary buttons. The Tx menu remains exactly the three items
+above. Browser USB installation and recovery remain available.
+
+## Remote configuration and durable results
+
+Administrator selection stays separate from `peers[activePeer]` cue routing.
+Exceptional remote setup screens show the full selected receiver identity and
+friendly name, plus a separate Cue RX footer. Changing the admin target never
+broadcasts a cue, changes cue destination, or applies to every receiver.
+
+![Remote receiver examples](../designs/firmware/remote-review-sheet.png)
+
+Pending means no definitive receiver response. Apply confirmed requires a matching
+authenticated successful Apply response. Rejected, unreachable, cached and unknown
+states remain distinct. A missing Apply reply is unknown even if the receiver
+committed; it is never automatically retried.
+
+![Durable receipt and recovery examples](../designs/firmware/recovery-review-sheet.png)
+
+Protocol-v2 `result {transactionId}` maps to `RemoteOperation::Result`. Core sets
+`remote.resultApplied` only when a matching authenticated reply contains
+`result.state == "applied"`. `ok:true` with `state:"unknown"` still shows **Apply
+unknown / No matching stored receipt**. A missing, rejected or cached lookup
+cannot confirm Apply. The pending screen says **No new Apply sent**. Bounded
+receipt history can be evicted; absence never proves that nothing committed.
+
+The service uses 120 seconds without fresh authenticated progress for abandoned
+remote-edit recovery. Duplicates/replay must not renew it; 3600 seconds is the
+absolute transfer ceiling, not an hour-long disconnect grace period. UI follows
+actual service state and owns no duplicate timeout or animated estimate. Physical
+reset remains available. Receipt persistence, authority, encryption, correlation,
+lease cleanup and final combined acceptance belong to config/radio integration.
+
+## Boundary, rendering and evidence
+
+`firmware/include/device_ui.h` is the portable presentation boundary. Core copies
+committed membership and actual measurements, supplies pause/setup/recovery state,
+consumes actions, and honors `cuesPaused()` for local and incoming cues. UI owns no
+BLE, radio lifecycle, settings cache or secrets. The authoritative settings model
+remains [config.schema.json](../contracts/config.schema.json).
+
+Core maps TX `ConfigStatus.remoteDeviceId` to the admin identity; RX uses its
+authenticated controller identity. `remotePending` maps to Pending, RX remote
+editing maps to `Setup::RemoteEditing`, and Result requires its separate applied
+flag. `cueReceiverId` comes only from committed cue selection. Core's current
+`updateSnapshot()` populates receiver rows from its peer observations; no measured
+signal is inferred from the review fixtures.
+
+The original bitmap font is 5×7 in a 6×8 cell, uppercase ASCII with explicit
+ellipsis/`?` fallback. TX uses ×13 scaling; its letters occupy 143×91 pixels.
+Renderer output is 5,000 row-major bytes, MSB first, 1 = black. Actual small-text
+readability, orientation and optics remain physical acceptance tests.
+
+The independent FreeRTOS display task has a length-one overwrite queue, coalesces
+the latest frame, skips identical frames and starts full refreshes at least 2.5 s
+apart. The reference full refresh takes approximately 2 s. Input/radio do not wait
+for it. Display HSPI uses SCK38, MOSI45, CS39, DC40, reset41, busy42, independently
+of the radio. Allocation failure returns false; a retained paper image cannot
+prove power or readiness.
+
+Rebuild/check from the repository root:
 
 ```sh
 python3 scripts/build-device-preview.py
+python3 scripts/build-device-preview.py --check
+c++ -std=c++17 -Wall -Wextra -Werror -fsanitize=undefined -Ifirmware/include \
+  firmware/src/device_ui.cpp firmware/tests/ui/device_ui_test.cpp \
+  -o /tmp/uberclicker-ui-test
+/tmp/uberclicker-ui-test
 ```
 
-The standard-library script updates only the embedded design inside the checked-in preview shell. Commit both the source and rebuilt preview. It requires no Codex installation, local skill files, or external build packages. The design works without host-only design controls; CDN resources used by the preview shell need internet access for supplementary tooling.
+The standard-library script compiles production UI assertions, generates 69 PBM/PNG
+frames and review sheets, embeds the exact pixels into `designs/device-interface.html`
+and synchronizes `device-preview.html`. It removes obsolete generated PNG/PBM files.
+Keep code, authored fragment and generated preview together. Alternative header
+layouts are review-only; the first variant matches firmware.
 
-Each design supports mode and state selection, individual click simulation, menu navigation, app/BLE setup, LAN setup, fallback hotspot, pairing proposal, low battery and reset. Optional host design controls adjust the primary label from 24 to 28 logical pixels. Scenario choices are remembered by the conversation host when available; no secrets are stored.
+Tests cover minimal menu/navigation, paging, paired-only fresh counts/RSSI mean,
+unpaired/duplicate/stale/invalid exclusion, strong average with a missing peer,
+unchanged home after a cue, RX no-cue, button debounce/chord/no-repeat/startup-held,
+reset cancellation/hold/rollover, pause transitions, durable receipt semantics,
+remote target isolation and physical recovery. A mocked FreeRTOS/SPI/panel test
+executes the production display task to check coalescing, cadence, identical-frame
+skipping and allocation failures. UBSan passes; the host ASan runtime previously
+stalled before test entry, so no ASan coverage is claimed.
 
-The preview includes `document.getElementById('uberclicker-device-designs').ucDesignCheck()` in its iframe. It measures text across the three designs, four modes, screen states, each menu selection and the 24/28 px label extremes. It reports over-wide text instead of squeezing text to fit.
-
-Browser verification on 29 October 2026 passed **456 text-fit combinations**, keyboard release/no-repeat, individual action and menu navigation, app setup navigation, unconfirmed results, receiver buttons without output, keyboard-specific USB simulation, carousel switching, reset default-choice protection, Cancel, short-hold cancellation and three-second confirmation into onboarding. Layout was checked at 320 and 736 px in light/dark appearance, with no horizontal overflow or script errors. Screenshots of all three designs and the narrow menu were visually inspected.
-
-Remaining checks are physical e-paper rendering, exact firmware font metrics, voltage calibration, input/chord timing on hardware, USB wiring, and all future BLE/LAN/account/output protocols. No firmware, original source, account configuration or published site is changed by this proposal.
+[Hardware acceptance](hardware-validation.md) remains pending. UI preview/build
+success does not validate RF freshness, RSSI calibration, BLE behavior or flashing.

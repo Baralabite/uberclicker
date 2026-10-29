@@ -1,6 +1,11 @@
 # UberClicker product plan
 
-Status: device design review, 29 October 2026. UberClicker is a public, noncommercial open-source project under the [MIT license](../LICENSE), which permits commercial reuse. The website is deployed and verified on GitHub Pages. This is a delivery plan, not a feature availability statement. The separate `gathermesh-lora` reference source remains untouched and is not included here.
+Original delivery targets, 29 October 2026. See the [current implementation status](../README.md)
+for experimental firmware, apps, releases and dock prototypes, and the
+[hardware acceptance record](hardware-validation.md) for the remaining gates.
+This is a delivery plan, not a feature availability statement. UberClicker's authored
+source is MIT; linked firmware also carries [dependency license terms](dependencies.md).
+The separate `gathermesh-lora` reference remains untouched and is not included here.
 
 ## Product decisions for review
 

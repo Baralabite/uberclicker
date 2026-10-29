@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  workflow_run:
+    workflows: [Firmware build and experimental release]
+    types: [completed]
 
 permissions:
   contents: read
@@ -16,24 +19,35 @@ concurrency:
 
 jobs:
   deploy:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 24
+      - name: Build browser configuration app
+        run: |
+          npm ci --prefix app
+          npm test --prefix app
+          node scripts/build-website.mjs
       - name: Check website
         run: |
           node website/check.mjs
           node --check website/dist/app.js
           node --input-type=module --check < website/dist/device.js
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v4
+          node --test website/flash.test.mjs scripts/tests/mirror-releases.test.mjs
+      - name: Mirror verified published firmware releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/mirror-releases.mjs
+      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+      - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
         with:
           path: website/dist
       - name: Deploy
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4

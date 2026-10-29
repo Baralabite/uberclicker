@@ -1,0 +1,11 @@
+import { execFileSync } from 'node:child_process';
+import { cp, copyFile, rm } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+execFileSync('npm', ['run', 'build', '--', '--base', './'], { cwd: path.join(root, 'app'), stdio: 'inherit' });
+const destination = path.join(root, 'website/dist/app');
+await rm(destination, { recursive: true, force: true });
+await cp(path.join(root, 'app/dist'), destination, { recursive: true });
+await copyFile(path.join(root, 'device-preview.html'), path.join(root, 'website/dist/device-preview.html'));
+console.log('Copied the real browser configuration app to /app/.');

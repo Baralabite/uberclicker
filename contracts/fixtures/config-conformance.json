@@ -1,0 +1,35 @@
+{
+  "protocol": 2,
+  "request": {
+    "v": 2,
+    "id": 1,
+    "op": "status"
+  },
+  "frameHex": "5543010000001c007b2276223a322c226964223a312c226f70223a22737461747573227d",
+  "invalid": [
+    "unknown property",
+    "activeProfile >= profiles.length",
+    "network output with empty host",
+    "wifi replace password shorter than 8",
+    "pairs replace without matching peer",
+    "stale expectedRevision"
+  ],
+  "errors": [
+    "INVALID",
+    "UNAUTHORIZED",
+    "SETUP_REQUIRED",
+    "BUSY",
+    "STALE_REVISION",
+    "SESSION_EXPIRED",
+    "TOO_LARGE",
+    "FRAMING",
+    "PERSIST_FAILED",
+    "UNSUPPORTED",
+    "RATE_LIMITED",
+    "REMOTE_UNAVAILABLE",
+    "REMOTE_TIMEOUT",
+    "REMOTE_DENIED",
+    "TRANSACTION_CONFLICT",
+    "RECOVERY_REQUIRED"
+  ]
+}

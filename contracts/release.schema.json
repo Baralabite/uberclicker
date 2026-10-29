@@ -1,0 +1,232 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uberclicker.com/contracts/release.schema.json",
+  "title": "UberClicker experimental firmware release v1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "manifestVersion": {
+      "const": 1
+    },
+    "channel": {
+      "const": "prerelease"
+    },
+    "board": {
+      "const": "thinknode_m5"
+    },
+    "chip": {
+      "const": "esp32s3"
+    },
+    "flashSize": {
+      "const": 4194304
+    },
+    "settingsSchemaVersion": {
+      "enum": [
+        1,
+        2
+      ]
+    },
+    "configProtocolVersion": {
+      "enum": [
+        1,
+        2
+      ]
+    },
+    "radioProtocolVersion": {
+      "const": 1
+    },
+    "hardwareValidated": {
+      "const": false
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*$",
+      "maxLength": 31
+    },
+    "sourceCommit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "images": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "file",
+          "offset",
+          "size",
+          "sha256"
+        ],
+        "properties": {
+          "file": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-][A-Za-z0-9_.-]*\\.bin$"
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4194303,
+            "multipleOf": 4096
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4194304
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    "partitions": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 95,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "type",
+          "subtype",
+          "offset",
+          "size"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 16
+          },
+          "type": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "subtype": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "multipleOf": 4096
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4194304
+          }
+        }
+      }
+    },
+    "sourceDirty": {
+      "const": false
+    },
+    "bleFramingVersion": {
+      "const": 1
+    },
+    "remoteConfigRadioVersion": {
+      "enum": [
+        0,
+        2
+      ]
+    },
+    "preserveSettingsSchemas": {
+      "enum": [
+        [
+          1
+        ],
+        [
+          1,
+          2
+        ]
+      ]
+    },
+    "settingsMigration": {
+      "enum": [
+        "none",
+        "atomic-on-apply-v1-to-v2"
+      ]
+    }
+  },
+  "required": [
+    "manifestVersion",
+    "channel",
+    "board",
+    "chip",
+    "flashSize",
+    "settingsSchemaVersion",
+    "configProtocolVersion",
+    "radioProtocolVersion",
+    "hardwareValidated",
+    "version",
+    "sourceCommit",
+    "images",
+    "partitions",
+    "sourceDirty"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "settingsSchemaVersion": {
+            "const": 2
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "bleFramingVersion",
+          "remoteConfigRadioVersion",
+          "preserveSettingsSchemas",
+          "settingsMigration"
+        ],
+        "properties": {
+          "configProtocolVersion": {
+            "const": 2
+          },
+          "remoteConfigRadioVersion": {
+            "const": 2
+          },
+          "preserveSettingsSchemas": {
+            "const": [
+              1,
+              2
+            ]
+          },
+          "settingsMigration": {
+            "const": "atomic-on-apply-v1-to-v2"
+          },
+          "bleFramingVersion": {
+            "const": 1
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "configProtocolVersion": {
+            "const": 1
+          },
+          "remoteConfigRadioVersion": {
+            "const": 0
+          },
+          "preserveSettingsSchemas": {
+            "const": [
+              1
+            ]
+          },
+          "settingsMigration": {
+            "const": "none"
+          }
+        }
+      }
+    }
+  ]
+}

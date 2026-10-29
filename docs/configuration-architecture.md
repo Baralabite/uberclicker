@@ -1,6 +1,11 @@
 # Configuration architecture proposal
 
-Status: proposed contract for device design review in the public, noncommercial, [MIT-licensed](../LICENSE) UberClicker project. Website deployment approval does not approve or implement this architecture. No app, configuration service, account backend, or relay is implemented by this document.
+Original architecture proposal, retained as a target. The [current implementation](../README.md)
+now supplies the BLE configuration service and native/browser clients. The authoritative
+contract is [config-protocol.md](../contracts/config-protocol.md). Protected LAN,
+mDNS, hotspot, account backend and relay remain unimplemented; the broader access
+paths below are not availability claims. Cues now remain paused for the full physical
+setup window, including after Apply, Cancel or disconnect.
 
 ## One settings model
 

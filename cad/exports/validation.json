@@ -1,0 +1,161 @@
+{
+  "status": "TWO-BAY CLAMP AND CABLE-TAB PROTOTYPE - physical fit and retention unvalidated",
+  "tool": "OpenSCAD version 2026.06.12",
+  "meshes": [
+    {
+      "file": "exports/dock-1-bay.stl",
+      "triangles": 2022,
+      "connected_solids": 1,
+      "closed_edges": true,
+      "consistent_winding": true,
+      "bounds_mm": [
+        [
+          -40.125,
+          -24.312,
+          0.0
+        ],
+        [
+          40.125,
+          24.312,
+          48.0
+        ]
+      ],
+      "size_mm": [
+        80.25,
+        48.625,
+        48.0
+      ],
+      "volume_mm3": 124394.76
+    },
+    {
+      "file": "exports/dock-2-bay.stl",
+      "triangles": 3732,
+      "connected_solids": 1,
+      "closed_edges": true,
+      "consistent_winding": true,
+      "bounds_mm": [
+        [
+          -76.5,
+          -24.312,
+          0.0
+        ],
+        [
+          76.5,
+          24.312,
+          48.0
+        ]
+      ],
+      "size_mm": [
+        153.0,
+        48.625,
+        48.0
+      ],
+      "volume_mm3": 235397.4
+    },
+    {
+      "file": "exports/fit-coupon.stl",
+      "triangles": 224,
+      "connected_solids": 1,
+      "closed_edges": true,
+      "consistent_winding": true,
+      "bounds_mm": [
+        [
+          -32.1,
+          -19.45,
+          0.0
+        ],
+        [
+          32.1,
+          19.45,
+          5.0
+        ]
+      ],
+      "size_mm": [
+        64.2,
+        38.9,
+        5.0
+      ],
+      "volume_mm3": 5546.19
+    }
+  ],
+  "parameter_checks": [
+    {
+      "case": "offset-port",
+      "expected_valid": true,
+      "passed": true
+    },
+    {
+      "case": "eight-mm-insert",
+      "expected_valid": true,
+      "passed": true
+    },
+    {
+      "case": "smaller-plug-body",
+      "expected_valid": true,
+      "passed": true
+    },
+    {
+      "case": "larger-plug-body",
+      "expected_valid": true,
+      "passed": true
+    },
+    {
+      "case": "large-cable-with-clearance",
+      "expected_valid": true,
+      "passed": true
+    },
+    {
+      "case": "roof-too-low-for-side-loading",
+      "expected_valid": false,
+      "passed": true
+    },
+    {
+      "case": "straight-sided-base",
+      "expected_valid": true,
+      "passed": true
+    },
+    {
+      "case": "narrower-bottom-rejected",
+      "expected_valid": false,
+      "passed": true
+    },
+    {
+      "case": "tabs-block-side-loading",
+      "expected_valid": false,
+      "passed": true
+    },
+    {
+      "case": "bend-too-large-for-floor",
+      "expected_valid": false,
+      "passed": true
+    },
+    {
+      "case": "screw-exceeds-ten-mm",
+      "expected_valid": false,
+      "passed": true
+    },
+    {
+      "case": "eight-mm-insert-small-plug-unreachable",
+      "expected_valid": false,
+      "passed": true
+    },
+    {
+      "case": "invalid-bay-count",
+      "expected_valid": false,
+      "passed": true
+    },
+    {
+      "case": "oversized-corner-radius",
+      "expected_valid": false,
+      "passed": true
+    },
+    {
+      "case": "plug-body-too-tall",
+      "expected_valid": false,
+      "passed": true
+    }
+  ],
+  "cable_clearance_check": {
+    "empty_intersection": true
+  }
+}

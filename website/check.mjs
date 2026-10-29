@@ -38,7 +38,7 @@ assert.match(node('#last-receipt').textContent, /simulated/);
 node('#previous-cue').events.click();
 assert.equal(node('#last-action').textContent, 'Last: Previous');
 radios[1].events.change();
-assert.match(node('#connection-detail').textContent, /same network/);
+assert.match(node('#connection-detail').textContent, /LAN configuration is unavailable/);
 radios[2].events.change();
 assert.match(node('#connection-detail').textContent, /alone does not make a device reachable/);
 assert(!/023|82%|LoRa paired|cue-count/.test(html), 'No invented device status or cue counter');

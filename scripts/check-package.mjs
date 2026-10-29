@@ -1,0 +1,14 @@
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import { validateManifest, validateImage } from '../website/dist/flash/validate.mjs';
+const directory = process.argv[2];
+if (!directory) throw new Error('Usage: node scripts/check-package.mjs PACKAGE_DIRECTORY');
+const manifest = validateManifest(JSON.parse(await readFile(path.join(directory, 'manifest.json'))));
+const require = createRequire(new URL('../app/package.json', import.meta.url));
+const Ajv = require('ajv/dist/2020').default;
+const schema = JSON.parse(await readFile(new URL('../contracts/release.schema.json', import.meta.url)));
+const validateSchema = new Ajv({ strict: true }).compile(schema);
+if (!validateSchema(manifest)) throw new Error(`Release JSON Schema mismatch: ${JSON.stringify(validateSchema.errors)}`);
+for (const image of manifest.images) await validateImage(image, new Uint8Array(await readFile(path.join(directory, image.file))), manifest.version);
+console.log(`Verified packaged ${manifest.version}: ${manifest.images.length} images, manifest and ESP32-S3 headers.`);

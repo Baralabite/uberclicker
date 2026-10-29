@@ -1,0 +1,10 @@
+node_modules/
+dist/
+artifacts/
+android/.gradle/
+android/local.properties
+android/**/build/
+ios/App/Pods/
+ios/DerivedData/
+*.xcuserstate
+.DS_Store

@@ -2,7 +2,20 @@
 
 The public repository is [Baralabite/uberclicker](https://github.com/Baralabite/uberclicker). The website was deployed and verified at [GitHub Pages](https://baralabite.github.io/uberclicker/) on 29 October 2026. The user then confirmed preserving **uberclicker.com** for domain hookup; the Pages address now redirects there. Custom-domain DNS propagation and HTTPS remain pending. Device design remains under review. The project operates noncommercially under the MIT license.
 
-GitHub Actions publishes the static `website/dist` site on pushes to `main`, using the repository’s Pages deployment environment. Settings → Pages → Source is configured as **GitHub Actions**, with custom domain **uberclicker.com**. HTTPS enforcement awaits GitHub’s certificate. This website workflow does not build firmware, create firmware releases, or provide a functional USB flasher. Those remain pending, along with apps and measured dock CAD.
+GitHub Actions publishes `website/dist` on pushes to `main` and after successful
+firmware publication, using the existing Pages environment and custom domain
+**uberclicker.com**. The workflow builds the real browser app, runs site/flasher
+checks and mirrors exact verified release assets. Firmware build/prerelease creation
+uses `.github/workflows/firmware.yml`. Stable tags remain blocked pending physical
+acceptance. The dock is an unmeasured fit prototype, with checked meshes.
+
+During final integration on 29 October, GitHub's Pages health API reported both
+apex and `www` DNS valid, pointed to Pages and HTTPS-eligible, with no non-Pages IP.
+It still reported `responds_to_https:false` / `peer_failed_verification`; the Pages
+certificate was absent and ordinary HTTPS requests failed hostname verification.
+The custom domain remains preserved. Hosted Web Bluetooth/Web Serial cannot work
+until trusted HTTPS is available; localhost and native development builds are
+separate options. No certificate warning was bypassed.
 
 ## Deployment verification
 

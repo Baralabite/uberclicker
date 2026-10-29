@@ -1,0 +1,248 @@
+<div id="uberclicker-device-designs">
+  <style>
+    #uberclicker-device-designs { --uc-ink: light-dark(#181818, #eeeeec); --uc-surface: light-dark(#ffffff, #242424); --uc-line: light-dark(#b9b9b5, #62625f); color: var(--uc-ink); font: 400 14px/1.45 system-ui, sans-serif; }
+    #uberclicker-device-designs .uc-stage { min-height: 590px; box-sizing: border-box; padding: 20px 12px 22px; display: flex; flex-direction: column; align-items: center; gap: 18px; }
+    #uberclicker-device-designs .uc-heading { width: min(100%, 430px); padding-right: 76px; box-sizing: border-box; }
+    #uberclicker-device-designs .uc-name { font-size: 18px; font-weight: 500; }
+    #uberclicker-device-designs .uc-caption { font-size: 12px; margin-top: 3px; }
+    #uberclicker-device-designs .uc-controls { display: flex; flex-wrap: wrap; gap: 10px; width: min(100%, 430px); }
+    #uberclicker-device-designs .uc-controls label { flex: 1 1 160px; display: grid; gap: 4px; font-size: 12px; }
+    #uberclicker-device-designs select { width: 100%; border: 1px solid var(--uc-line); border-radius: 6px; padding: 8px; background: var(--uc-surface); color: var(--uc-ink); font: inherit; }
+    #uberclicker-device-designs .uc-screen { display: block; width: 300px; height: 300px; background: #fff; color: #000; border: 1px solid var(--uc-line); image-rendering: pixelated; }
+    #uberclicker-device-designs .uc-display { display: grid; justify-items: center; gap: 8px; }
+    #uberclicker-device-designs .uc-keys { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; width: min(100%, 430px); }
+    #uberclicker-device-designs button { border: 1px solid var(--uc-line); border-radius: 6px; background: var(--uc-surface); color: var(--uc-ink); padding: 10px 15px; min-height: 44px; font: 500 14px/1.2 system-ui, sans-serif; }
+    #uberclicker-device-designs button:active { background: var(--uc-ink); color: var(--uc-surface); }
+    #uberclicker-device-designs .uc-event { font-size: 12px; text-align: center; min-height: 18px; max-width: 430px; }
+    @media (max-width: 380px) { #uberclicker-device-designs .uc-stage { min-height: 675px; padding-inline: 4px; } #uberclicker-device-designs .uc-screen { width: 268px; height: 268px; } #uberclicker-device-designs .uc-heading { padding-right: 70px; } }
+  </style>
+  <div class="viz-carousel viz-dotted-background" aria-label="UberClicker device screen designs">
+    <section data-variant="Quiet action-first" aria-label="Quiet action-first design"><div class="uc-stage" data-design="quiet"></div></section>
+    <section data-variant="Status-first" aria-label="Status-first design" hidden><div class="uc-stage" data-design="status"></div></section>
+    <section data-variant="Split actions" aria-label="Split actions design" hidden><div class="uc-stage" data-design="split"></div></section>
+  </div>
+  <script>
+    (() => {
+      const root = document.getElementById('uberclicker-device-designs');
+      const names = { quiet: 'Quiet action-first', status: 'Status-first', split: 'Split actions' };
+      const modeNames = { tx: 'LoRa transmitter', rx: 'LoRa receiver', osc: 'Direct OSC · proposal', usb: 'USB keyboard · proposal' };
+      const stateNames = { home: 'Home', last: 'Last action', uncertain: 'Unconfirmed / offline', menu: 'Menu', setup: 'Wi-Fi fallback · proposal', ble: 'App / BLE setup · proposal', lan: 'LAN setup · proposal', low: 'Low battery', pair: 'Pairing · proposal', reset: 'Factory reset · proposal' };
+      const menuGroups = { main: ['Configure', 'Device', 'Back'], configure: ['App setup', 'LAN setup', 'Wi-Fi fallback', 'Back'], device: ['Pair receiver', 'Factory reset', 'Back'] };
+      const models = {};
+      const fitIssues = [];
+      const defaultModel = () => ({ mode: 'tx', view: 'home', action: 'Next', menu: 0, menuScope: 'main', resetChoice: false, resetArmed: false, labelSize: 26, event: 'Simulation only · no device is connected' });
+      function restore(snapshot) {
+        const saved = snapshot?.privateContent?.designs;
+        for (const key of Object.keys(names)) {
+          const next = saved?.[key];
+          if (!next) continue;
+          if (Object.hasOwn(modeNames, next.mode)) models[key].mode = next.mode;
+          if (Object.hasOwn(stateNames, next.view)) models[key].view = next.view;
+          if (['Next', 'Previous'].includes(next.action)) models[key].action = next.action;
+          if (typeof next.labelSize === 'number' && next.labelSize >= 24 && next.labelSize <= 28) models[key].labelSize = next.labelSize;
+        }
+      }
+      function save() {
+        if (!window.openai?.setWidgetState) return;
+        window.openai.setWidgetState({
+          modelContent: { designs: Object.entries(models).map(([key, m]) => ({ design: names[key], mode: modeNames[m.mode], state: m.view, primaryLabelPx: m.labelSize })) },
+          privateContent: { designs: models }
+        }).catch(() => {});
+      }
+      Object.keys(names).forEach(key => { models[key] = defaultModel(); });
+      restore(window.openai?.widgetState);
+      function text(ctx, value, x, y, size = 14, align = 'left', maxWidth = 176) {
+        ctx.font = `400 ${size}px Arial, sans-serif`;
+        ctx.textAlign = align;
+        const width = ctx.measureText(value).width;
+        if (width > maxWidth + 0.1) fitIssues.push({ value, width, maxWidth });
+        ctx.fillText(value, x, y);
+      }
+      function line(ctx, y, x1 = 12, x2 = 188) { ctx.fillRect(x1, y, x2 - x1, 1); }
+      function header(ctx, m) {
+        text(ctx, m.mode === 'tx' ? 'LORA TX' : m.mode === 'rx' ? 'LORA RX' : m.mode === 'usb' ? 'USB HID' : 'WI-FI OSC', 12, 23, 12, 'left', 135);
+        ctx.strokeRect(168, 13, 18, 9); ctx.fillRect(186, 16, 2, 3);
+        const level = m.view === 'low' ? 3 : 12;
+        ctx.fillRect(171, 16, level, 3);
+        line(ctx, 32);
+      }
+      function footer(ctx, m, split) {
+        line(ctx, 161);
+        if (!split) {
+          if (m.mode === 'rx') text(ctx, 'B1 / B2: refresh status', 100, 175, 13, 'center');
+          else { text(ctx, 'Previous', 12, 175, 13, 'left', 80); text(ctx, 'Next', 188, 175, 13, 'right', 80); }
+        }
+        text(ctx, 'Both: menu', 100, 188, 11, 'center');
+      }
+      function details(m) {
+        if (m.view === 'uncertain') return m.mode === 'tx'
+          ? { title: 'Unconfirmed', lines: ['No acknowledgement', 'Delivery is unknown'] }
+          : m.mode === 'rx' ? { title: 'Link unknown', lines: ['No recent click', 'No link heartbeat'] }
+          : m.mode === 'usb' ? { title: 'USB concept', lines: ['Hardware check needed', 'Keyboard · proposed'] }
+          : { title: 'Offline', lines: ['Wi-Fi unavailable', 'Check app setup'] };
+        if (m.view === 'low') return { title: 'Battery low', lines: ['Recharge when able', m.mode === 'tx' ? 'LoRa transmitter' : m.mode === 'rx' ? 'LoRa → USB HID' : m.mode === 'usb' ? 'USB → keyboard' : 'Wi-Fi → OSC'] };
+        if (m.view === 'last') return { title: m.action, lines: m.mode === 'tx' ? ['Last click', 'acknowledged'] : m.mode === 'rx' ? ['Last received', 'Output unverified'] : m.mode === 'usb' ? ['Key event sent', 'Host action unverified'] : ['Last command sent', 'Delivery unverified'] };
+        return { title: m.mode === 'usb' ? 'USB concept' : 'Ready', lines: m.mode === 'tx' ? ['No acknowledgement', 'yet'] : m.mode === 'rx' ? ['LoRa → USB HID', 'Proposed output'] : m.mode === 'usb' ? ['USB → keyboard', 'Hardware check needed'] : ['Wi-Fi → OSC', 'UDP · proposed output'] };
+      }
+      function draw(key) {
+        const stage = root.querySelector(`[data-design="${key}"]`);
+        const m = models[key], canvas = stage.querySelector('canvas'), ctx = canvas.getContext('2d'), menus = menuGroups[m.menuScope];
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 200, 200); ctx.fillStyle = '#000'; ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+        header(ctx, m);
+        let screenDescription = '';
+        if (m.view === 'menu') {
+          text(ctx, m.menuScope === 'main' ? 'Menu' : m.menuScope === 'configure' ? 'Configure' : 'Device', 12, 60, 24);
+          menus.forEach((label, i) => {
+            const y = 86 + i * 21;
+            if (i === m.menu) { ctx.fillRect(12, y - 15, 176, 20); ctx.fillStyle = '#fff'; }
+            text(ctx, label, 20, y, 15, 'left', 160); ctx.fillStyle = '#000';
+          });
+          line(ctx, 158); text(ctx, 'B1: move  B2: select', 12, 175, 13); text(ctx, 'Both: back', 12, 188, 11);
+          screenDescription = `Menu, ${menus[m.menu]} selected. B1 moves; B2 selects; both returns home.`;
+        } else if (m.view === 'reset') {
+          text(ctx, 'Erase settings?', 12, 60, 22);
+          text(ctx, 'Clears Wi-Fi, BLE,', 12, 85, 14);
+          text(ctx, 'app link and profiles', 12, 104, 14);
+          text(ctx, 'Account unlink separate', 12, 127, 13);
+          text(ctx, m.resetArmed ? 'Ready to erase' : m.resetChoice ? 'Erase selected' : 'Cancel selected', 12, 151, 14);
+          line(ctx, 161); text(ctx, m.resetArmed ? 'B1 / B2: cancel' : 'B1: change  B2: select', 12, 175, 13); text(ctx, m.resetArmed ? 'Hold both 3 s: erase' : 'Clicks paused', 12, 188, 12);
+          screenDescription = `Erase settings? ${m.resetArmed ? 'Hold both buttons three seconds to erase; either individual button cancels.' : m.resetChoice ? 'Erase selected. B2 arms confirmation; B1 changes selection.' : 'Cancel selected. B1 selects Erase; B2 cancels.'} Clears local Wi-Fi, BLE, app link and profiles. Account unlink is separate.`;
+        } else if (m.view === 'ble') {
+          text(ctx, 'App setup', 12, 63, 24);
+          text(ctx, 'Open UberClicker app', 12, 88, 16);
+          text(ctx, 'BLE · proposed setup', 12, 110, 14);
+          text(ctx, 'UberClicker A7', 12, 134, 17);
+          text(ctx, 'Demo code: 482 916', 12, 153, 15);
+          text(ctx, 'Clicks paused', 12, 168, 12);
+          line(ctx, 174); text(ctx, 'Either button: back', 12, 188, 13);
+          screenDescription = 'Proposed Bluetooth app setup. Open UberClicker app. Demonstration device UberClicker A7, pairing code 482 916. Either button returns home.';
+        } else if (m.view === 'lan') {
+          text(ctx, 'LAN setup', 12, 63, 24);
+          text(ctx, 'Same Wi-Fi as your app', 12, 91, 14);
+          text(ctx, 'Example device address', 12, 118, 13);
+          text(ctx, 'http://192.168.1.42', 12, 141, 16);
+          text(ctx, 'Clicks paused', 12, 165, 12);
+          line(ctx, 174); text(ctx, 'Either button: back', 12, 188, 13);
+          screenDescription = 'Proposed LAN setup from app on the same Wi-Fi. Demonstration device address http://192.168.1.42. Either button returns home.';
+        } else if (m.view === 'setup') {
+          text(ctx, 'Phone setup', 12, 64, 24);
+          text(ctx, 'Proposed Wi-Fi hotspot', 12, 89, 14);
+          text(ctx, 'UberClicker-Setup', 12, 116, 16);
+          text(ctx, 'Then open', 12, 139, 14);
+          text(ctx, '192.168.4.1', 12, 155, 18);
+          text(ctx, 'Clicks paused', 12, 170, 12);
+          line(ctx, 174); text(ctx, 'Either button: back', 12, 188, 13);
+          screenDescription = 'Proposed phone setup: join demonstration hotspot UberClicker-Setup, then open 192.168.4.1. Either button returns home.';
+        } else if (m.view === 'pair') {
+          text(ctx, 'Pair receiver', 12, 63, 24);
+          text(ctx, 'Proposed flow', 12, 87, 15);
+          text(ctx, 'Confirm same code', 12, 113, 15);
+          text(ctx, 'on both devices', 12, 134, 15);
+          text(ctx, 'Clicks paused', 12, 158, 14);
+          line(ctx, 174); text(ctx, 'Either button: back', 12, 188, 13);
+          screenDescription = 'Proposed pairing flow: confirm the same code on both devices. Not implemented. Either button returns home.';
+        } else {
+          const d = details(m);
+          if (m.view === 'home' && key === 'quiet' && m.mode !== 'usb') d.title = 'Presenter';
+          if (key === 'quiet') {
+            text(ctx, d.title, 12, 81, m.labelSize);
+            text(ctx, d.lines[0], 12, 112, 14);
+            text(ctx, d.lines[1], 12, 133, 14);
+          } else if (key === 'status') {
+            text(ctx, d.lines[0], 12, 57, 14);
+            text(ctx, d.lines[1], 12, 77, 14);
+            line(ctx, 91);
+            text(ctx, d.title, 12, 134, m.labelSize);
+          } else {
+            text(ctx, d.title, 12, 62, m.labelSize);
+            text(ctx, d.lines[0], 12, 85, 13);
+            text(ctx, d.lines[1], 12, 104, 13);
+            line(ctx, 116);
+            if (m.mode === 'rx') text(ctx, 'Refresh status', 100, 146, 20, 'center');
+            else { text(ctx, 'Previous', 12, 146, 20, 'left', 94); ctx.fillRect(112, 126, 1, 24); text(ctx, 'Next', 188, 146, 20, 'right', 68); }
+          }
+          footer(ctx, m, key === 'split');
+          screenDescription = `${modeNames[m.mode]}. ${d.title}. ${d.lines.join('. ')}. ${m.mode === 'rx' ? 'B1 and B2 refresh status' : 'B1 previous; B2 next'}; both opens menu.`;
+        }
+        canvas.setAttribute('aria-label', screenDescription);
+        stage.querySelector('[data-field="mode"]').value = m.mode;
+        stage.querySelector('[data-field="view"]').value = m.view;
+        stage.querySelector('.uc-event').textContent = m.event;
+        stage.querySelector('[data-key="both"]').textContent = m.view === 'reset' ? 'Hold both · 3 s' : 'Both · menu';
+      }
+      function action(key, button) {
+        const m = models[key], menus = menuGroups[m.menuScope];
+        if (m.view === 'reset') {
+          if (m.resetArmed || (button === 'b2' && !m.resetChoice)) { m.view = 'home'; m.event = 'Factory reset cancelled · settings retained'; }
+          else if (button === 'b1') m.resetChoice = !m.resetChoice;
+          else if (button === 'b2') { m.resetArmed = true; m.event = 'Erase armed · hold both 3 s to confirm'; }
+        }
+        else if (button === 'both') { m.view = m.view === 'menu' ? 'home' : 'menu'; m.menuScope = 'main'; m.menu = 0; m.event = 'Both buttons · pending click cancelled'; }
+        else if (m.view === 'menu') {
+          if (button === 'b1') m.menu = (m.menu + 1) % menus.length;
+          else if (m.menuScope === 'main') { if (m.menu === 2) m.view = 'home'; else m.menuScope = m.menu === 0 ? 'configure' : 'device'; m.menu = 0; }
+          else if (m.menu === menus.length - 1) { m.menuScope = 'main'; m.menu = 0; }
+          else { m.view = (m.menuScope === 'configure' ? ['ble', 'lan', 'setup'] : ['pair', 'reset'])[m.menu]; m.resetChoice = false; m.resetArmed = false; }
+          m.event = 'Menu navigation · no command sent';
+        } else if (['setup', 'pair', 'ble', 'lan'].includes(m.view)) { m.view = 'home'; m.event = 'Returned home · no command sent'; }
+        else if (m.mode === 'rx') m.event = 'Receiver status refreshed · no click or output command';
+        else {
+          m.action = button === 'b1' ? 'Previous' : 'Next';
+          if (m.view !== 'uncertain') m.view = 'last';
+          m.event = m.view === 'uncertain' ? `${m.action} · simulated result remains unconfirmed` : m.mode === 'tx' ? `${m.action} · simulated receiver acknowledgement` : m.mode === 'usb' ? `${m.action} · simulated keyboard HID report` : `${m.action} · simulated OSC send`;
+        }
+        draw(key); save();
+      }
+      for (const [key, name] of Object.entries(names)) {
+        const stage = root.querySelector(`[data-design="${key}"]`);
+        stage.setAttribute('aria-label', name);
+        stage.innerHTML = `<div class="uc-heading"><div class="uc-name">${name}</div><div class="uc-caption">${key === 'quiet' ? 'Recommended · one clear action' : key === 'status' ? 'Acknowledgement before action' : 'Persistent action labels'}</div></div><div class="uc-controls"><label>Device mode<select class="cursor-interaction" data-field="mode" aria-label="${name}: device mode">${Object.entries(modeNames).map(([value, label]) => `<option value="${value}">${label}</option>`).join('')}</select></label><label>Screen state<select class="cursor-interaction" data-field="view" aria-label="${name}: screen state">${Object.entries(stateNames).map(([value, label]) => `<option value="${value}">${label}</option>`).join('')}</select></label></div><div class="uc-display"><canvas class="uc-screen" width="200" height="200" role="img"></canvas><div class="uc-caption">200 × 200 · monochrome e-paper</div></div><div class="uc-keys"><button class="cursor-interaction" type="button" data-key="b1">B1</button><button class="cursor-interaction" type="button" data-key="b2">B2</button><button class="cursor-interaction" type="button" data-key="both">Both · menu</button></div><div class="uc-event" aria-live="polite"></div><div class="uc-caption">Instant preview · hardware refresh ≈ 2 s</div>`;
+        stage.querySelectorAll('select').forEach(select => select.addEventListener('change', () => {
+          const m = models[key]; m[select.dataset.field] = select.value; m.menuScope = 'main'; m.menu = 0; m.resetChoice = false; m.resetArmed = false;
+          m.event = 'Scenario selected · simulation only'; draw(key); save();
+        }));
+        let holdCompleted = false;
+        stage.querySelectorAll('[data-key]').forEach(button => {
+          button.addEventListener('click', () => { if (holdCompleted) { holdCompleted = false; return; } action(key, button.dataset.key); });
+          button.addEventListener('keydown', event => { if (['Enter', ' '].includes(event.key)) event.preventDefault(); });
+          button.addEventListener('keyup', event => { if (['Enter', ' '].includes(event.key)) { event.preventDefault(); if (holdCompleted) { holdCompleted = false; return; } action(key, button.dataset.key); } });
+        });
+        const both = stage.querySelector('[data-key="both"]');
+        let holdTimer;
+        const cancelHold = () => { clearTimeout(holdTimer); holdTimer = null; };
+        const startHold = () => {
+          if (models[key].view !== 'reset' || !models[key].resetArmed || holdTimer) return;
+          models[key].event = 'Keep holding both · release to cancel'; draw(key);
+          holdTimer = setTimeout(() => {
+            if (models[key].view === 'reset') { holdCompleted = true; Object.assign(models[key], defaultModel(), { view: 'ble', event: 'Simulated reset complete · remote account unlink is separate' }); draw(key); save(); }
+            holdTimer = null;
+          }, 3000);
+        };
+        both.addEventListener('pointerdown', startHold);
+        ['pointerup', 'pointercancel', 'pointerleave', 'blur'].forEach(type => both.addEventListener(type, cancelHold));
+        both.addEventListener('keydown', event => { if (['Enter', ' '].includes(event.key) && !event.repeat) startHold(); });
+        both.addEventListener('keyup', cancelHold);
+        draw(key);
+        if (globalThis.Tweak) {
+          const tweak = new Tweak({ container: stage, onChange: () => { draw(key); save(); } });
+          tweak.addSlider(models[key], 'labelSize', { label: 'Primary label', min: 24, max: 28, step: 1, unit: 'px' });
+        }
+      }
+      window.addEventListener('openai:set_globals', event => {
+        if (event.detail?.globals?.widgetState) { restore(event.detail.globals.widgetState); Object.keys(names).forEach(draw); }
+      });
+      root.ucDesignCheck = () => {
+        fitIssues.length = 0;
+        const saved = JSON.parse(JSON.stringify(models));
+        let screensChecked = 0;
+        const scenarios = Object.keys(stateNames).filter(view => view !== 'menu').map(view => ({ view }));
+        Object.entries(menuGroups).forEach(([menuScope, labels]) => labels.forEach((_, menu) => scenarios.push({ view: 'menu', menuScope, menu })));
+        for (const key of Object.keys(names)) for (const mode of Object.keys(modeNames)) for (const scenario of scenarios) for (const labelSize of [24, 28]) {
+          Object.assign(models[key], { mode, ...scenario, labelSize }); draw(key); screensChecked++;
+        }
+        Object.keys(names).forEach(key => { Object.assign(models[key], saved[key]); draw(key); });
+        return { fits: fitIssues.length === 0, issues: [...fitIssues], screensChecked, logicalPixels: [200, 200] };
+      };
+    })();
+  </script>
+</div>

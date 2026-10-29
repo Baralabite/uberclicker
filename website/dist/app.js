@@ -6,8 +6,8 @@ function previewAction(action) {
 document.querySelector('#previous-cue').addEventListener('click', () => previewAction('Previous'));
 document.querySelector('#next-cue').addEventListener('click', () => previewAction('Next'));
 const connectionDetails = {
-  ble: 'Pair directly over BLE in the native app. Configuration pauses cue output until you apply or cancel your changes.',
-  lan: 'Use the native app on the same network when your device is connected to Wi-Fi. Configuration pauses cue output until you apply or cancel.',
+  ble: 'Pair over authenticated BLE in the native or supported browser app. Cues stay paused until physical setup exits or expires, including after Apply or Cancel.',
+  lan: 'LAN configuration is unavailable in current firmware. A device on the same network still needs a protected configuration service; use BLE setup.',
   linked: 'Future option: remote access needs an authenticated cloud relay and an online device. Linking an account alone does not make a device reachable.'
 };
 document.querySelectorAll('input[name="connection"]').forEach(input => {
