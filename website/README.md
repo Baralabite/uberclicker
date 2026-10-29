@@ -20,7 +20,7 @@ No build or dependency installation is required. The preview does not connect to
 
 Source: <https://github.com/Baralabite/uberclicker>. This is a noncommercial project released under the MIT license. “Noncommercial” describes the project, not a restriction on downstream reuse; MIT permits commercial reuse.
 
-GitHub Pages deploys `website/dist` through `.github/workflows/pages.yml` after integrity and JavaScript syntax checks. The live public URL is <https://baralabite.github.io/uberclicker/>, verified on 29 October 2026. No custom-domain CNAME is configured. See `docs/deployment.md` for production verification evidence.
+GitHub Pages deploys `website/dist` through `.github/workflows/pages.yml` after integrity and JavaScript syntax checks. The site was verified at <https://baralabite.github.io/uberclicker/> on 29 October 2026 before custom-domain hookup. Pages now has `uberclicker.com` configured, as confirmed by the user; DNS propagation and HTTPS are pending. The public address is <https://uberclicker.com/> once those finish. No source `CNAME` file is needed for the Actions deployment. See `docs/deployment.md` for production verification evidence and current domain status.
 
 See `docs/website-design.md` for decisions, sources, checks and known limits. `qa/` contains browser review screenshots; it is outside the served directory.
 
