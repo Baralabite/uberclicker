@@ -1,7 +1,8 @@
 # UberClicker
 
-**Experimental:** multi-receiver configuration and the simplified TX interface
-are implemented and pass software checks. Device UI review and physical hardware
+**Experimental:** [v0.2.0-experimental.1](https://github.com/Baralabite/uberclicker/releases/tag/v0.2.0-experimental.1)
+contains the multi-receiver firmware, browser/native app builds and verified
+installation assets. The simplified TX interface and software checks are complete. Device UI review and physical hardware
 acceptance remain pending. No device has been flashed during this work.
 
 An open-source presentation controller for the Elecrow ThinkNode M5, with a
@@ -51,7 +52,7 @@ LAN configuration, mDNS discovery and setup hotspot are not implemented. A manua
 HTTPS client does not make the device serve HTTPS. There is no account inventory
 or remote relay. Radio presets use **917 MHz** without regional selection.
 Native USB HID/MIDI is unavailable; CH340 serial programming does not establish
-native USB wiring. Menu profile cycling is runtime-only. Signed iPhone distribution
+native USB wiring. Profiles are selected in the app. Signed iPhone distribution
 and app-store publication require signing/account work and are not included.
 
 Build locally (no device access):

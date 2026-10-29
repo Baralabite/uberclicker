@@ -17,6 +17,23 @@ The custom domain remains preserved. Hosted Web Bluetooth/Web Serial cannot work
 until trusted HTTPS is available; localhost and native development builds are
 separate options. No certificate warning was bypassed.
 
+## Experimental implementation deployment
+
+The completed firmware/app/UI integration is published as
+[v0.2.0-experimental.1](https://github.com/Baralabite/uberclicker/releases/tag/v0.2.0-experimental.1).
+[Pages deployment](https://github.com/Baralabite/uberclicker/actions/runs/40851345405)
+serves the real app at `/app/`, current TX review at `/device-preview.html` and
+installer at `/flash/`. The homepage, app entry, review and installer source bytes
+were verified through GitHub's HTTP origin with the preserved domain Host header.
+The release index, versioned manifest/four images and compatible OTA feed match
+published GitHub assets exactly. This verifies deployment bytes, not trusted HTTPS
+or an actual device installation.
+
+GitHub still reports `cname:uberclicker.com`, `https_certificate:null` and
+`https_enforced:false`. Secure hosted BLE/Serial and device OTA remain blocked until
+certificate provisioning completes. No TLS verification was bypassed. See
+[integration evidence](integration-checks.md) and [installation](flashing.md).
+
 ## Deployment verification
 
 - [Initial deployment run](https://github.com/Baralabite/uberclicker/actions/runs/40829738216) and [verification documentation deployment](https://github.com/Baralabite/uberclicker/actions/runs/40830266269) completed successfully.

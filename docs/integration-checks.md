@@ -16,7 +16,7 @@ and the combined firmware build below.
   revisions, durable Apply receipts/result lookup after reboot, conflicting IDs,
   stale cross-target callbacks, torn writes and locked unknown-schema recovery.
 - Storage capacity: compact NVS blobs retain legacy string reads and reclaim only
-  the inactive slot. Four profiles/eight peers with maximum escaped payloads survive
+  the inactive slot. Four profiles/eight peers with max-length quote-heavy fields survive
   repeated saves, reboot and torn replacement. The largest exercised blob is 6,446
   bytes; peak modeled usage is 15,232 bytes including a 2 KB driver reserve, below
   the five-page 16,128-byte usable-entry budget. A failed readback locks outputs;
@@ -95,3 +95,21 @@ mDNS discovery or setup hotspot is required. Regional radio selection remains
 unimplemented (917 MHz candidate). Native USB HID/MIDI wiring is unverified.
 The custom domain is preserved; trusted HTTPS certificate provisioning is still
 pending in [deployment](deployment.md). No TLS warning was bypassed.
+
+## Published experimental candidate
+
+[v0.2.0-experimental.1](https://github.com/Baralabite/uberclicker/releases/tag/v0.2.0-experimental.1)
+is a public prerelease from clean source commit
+`d4d2f2ea37451bb7bd959476961517a79fd994f8`.
+[The full Linux build/release run](https://github.com/Baralabite/uberclicker/actions/runs/40850641373)
+and [Pages mirror deployment](https://github.com/Baralabite/uberclicker/actions/runs/40851345405)
+passed. GCC's misleading-indentation warnings were corrected by expanding control
+flow; the radio/output and 69-frame checks remained unchanged.
+
+The published application is 1,574,016 bytes. Its manifest passes the strict release
+schema, all four image validations and source-commit/clean checks. Downloaded release
+checksums and the corresponding-source ZIP CRC pass. The Pages index's manifest
+hash, mirrored manifest and all four images exactly match the GitHub downloads;
+the OTA feed selects this compatible two-slot release. Stable remains unavailable.
+Native development packages, separate app checksums/evidence/notices and licenses
+are attached to the same prerelease. No hardware was flashed.
