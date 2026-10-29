@@ -77,7 +77,10 @@ int main(int argc,char **argv){
   if(argc>1){const char *dir=argv[1];Snapshot s;
     picture(dir,"tx-unknown",s);s=roster(0);picture(dir,"tx-none",s);s=roster();picture(dir,"tx-home",s);picture(dir,"tx-all",s);
     s.receivers[2].state=ReceiverState::Offline;picture(dir,"tx-partial",s);s.receivers[2].state=ReceiverState::Connected;s.receivers[2].fresh=false;picture(dir,"tx-stale",s);
-    for(auto &p:s.receivers)if(p.paired)p.state=ReceiverState::Offline;picture(dir,"tx-offline",s);s.linkMonitoringAvailable=false;picture(dir,"tx-unsupported",s);
+    for(auto &p:s.receivers) {
+      if(p.paired)p.state=ReceiverState::Offline;
+    }
+    picture(dir,"tx-offline",s);s.linkMonitoringAvailable=false;picture(dir,"tx-unsupported",s);
     s=roster();s.battery=Battery::Low;picture(dir,"tx-low",s);
     Harness menus;menus.ui.setSnapshot(roster());menus.both();for(unsigned i=0;i<3;++i){char name[32];snprintf(name,sizeof(name),"menu-%u",i);save(dir,name,menus.ui);menus.tap(0);}menus.tap(0);menus.tap(0);menus.tap(1);save(dir,"reset-cancel",menus.ui);menus.tap(0);save(dir,"reset-erase",menus.ui);menus.tap(1);save(dir,"reset-armed",menus.ui);
     Harness pages;pages.ui.setSnapshot(eight);pages.both();pages.tap(1);for(unsigned i=0;i<3;++i){char name[32];snprintf(name,sizeof(name),"receivers-%u",i);save(dir,name,pages.ui);pages.tap(0);}

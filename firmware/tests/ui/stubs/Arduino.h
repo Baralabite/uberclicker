@@ -36,7 +36,10 @@ inline int xQueueReceive(QueueHandle_t q,void *data,uint32_t timeout){
  memcpy(data,q->bytes.data(),q->bytes.size());q->full=false;return pdPASS;
 }
 inline int xTaskCreate(void(*task)(void *),const char *,unsigned,void *,unsigned,void *){
- if(host::failTask)return 0;host::task=task;return pdPASS;
+ if (host::failTask)
+   return 0;
+ host::task = task;
+ return pdPASS;
 }
 struct SPISettings{SPISettings(int,int,int){}};
 struct SPIClass{explicit SPIClass(int){};void begin(int,int,int,int){}};

@@ -24,7 +24,9 @@ static char cachedHost[64]={};static uint32_t cachedAddress=0;static bool dnsRea
 static bool resolve(const char *host,IPAddress &ip){
  if(ip.fromString(host))return true;
  portENTER_CRITICAL(&dnsLock);bool ready=dnsReady&&!strcmp(host,cachedHost);uint32_t address=cachedAddress;portEXIT_CRITICAL(&dnsLock);
- if(ready)ip=IPAddress(address);return ready;
+ if (ready)
+   ip = IPAddress(address);
+ return ready;
 }
 static void dnsTask(void *) {
  char host[64]={};uint32_t last=0;
@@ -67,7 +69,8 @@ class Security final : public BLESecurityCallbacks {
 class Reports final : public BLECharacteristicCallbacks {
  void onSubscribe(BLECharacteristic *c,ble_gap_conn_desc *desc,uint16_t v) override {
   if(connection!=desc->conn_handle)return;
-  if(c==keyboard)subscribedKey=(v&1)!=0;else subscribedMidi=(v&1)!=0;resetRelease=true;
+  if(c==keyboard)subscribedKey=(v&1)!=0;else subscribedMidi=(v&1)!=0;
+  resetRelease=true;
  }
  void onStatus(BLECharacteristic *,Status status,uint32_t) override { notified=status==SUCCESS_NOTIFY; }
 };
