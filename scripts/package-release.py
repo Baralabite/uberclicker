@@ -21,8 +21,15 @@ def protocol_metadata(header, settings_schema, radio_source):
         if not match: raise ValueError('Missing firmware configuration version')
         values[field] = int(match[1])
     schema = values['settingsSchemaVersion']
-    if schema not in (1, 2) or values['configProtocolVersion'] != schema or settings_schema != schema:
+    if schema not in (1, 2, 4) or values['configProtocolVersion'] != (1 if schema == 1 else 2) or settings_schema != schema:
         raise ValueError('Review firmware/settings/client protocol compatibility before packaging')
+    if schema == 4:
+        wire_versions = {int(n) for n in re.findall(r'b\[\s*2\s*\]\s*=\s*(\d+)\s*;', radio_source)}
+        if wire_versions != {1}:
+            raise ValueError('Review broadcast radio version against the source')
+        return {**values, 'radioProtocolVersion': 1, 'radioMode': 'broadcast', 'configTransport': 'usb_serial',
+                'bleFramingVersion': 0, 'remoteConfigRadioVersion': 0, 'preserveSettingsSchemas': [1, 2, 3, 4],
+                'settingsMigration': 'atomic-on-apply-v1-v3-to-v4'}
     wire_versions = {int(n) for n in re.findall(r'p\[\s*2\s*\]\s*=\s*(\d+)\s*;', radio_source)}
     if wire_versions != ({1, 2} if schema == 2 else {1}):
         raise ValueError('Review cue and encrypted-management radio versions against the source')
@@ -106,9 +113,9 @@ def package(layout, output, version, commit, source_dirty=False):
     for p in settings:
         if any(i["offset"] < p["offset"] + p["size"] and i["offset"] + ((i["size"] + 4095) // 4096) * 4096 > p["offset"] for i in images):
             raise ValueError("Image erase would overwrite settings")
-    versions = protocol_metadata((ROOT / 'firmware/include/config_service.h').read_text(),
-        json.loads((ROOT / 'contracts/config.schema.json').read_text())['properties']['schemaVersion']['const'],
-        (ROOT / 'firmware/src/radio_protocol.cpp').read_text())
+    schema = json.loads((ROOT / 'contracts/config.schema.json').read_text())['properties']['schemaVersion']['const']
+    versions = protocol_metadata((ROOT / 'firmware/include/config_service.h').read_text(), schema,
+        (ROOT / ('firmware/include/radio_broadcast.h' if schema == 4 else 'firmware/src/radio_protocol.cpp')).read_text())
     manifest = {"manifestVersion": 1, "version": version, "channel": "prerelease",
                 "board": "thinknode_m5", "chip": "esp32s3", "flashSize": 4194304,
                 "sourceCommit": commit, "sourceDirty": source_dirty, **versions,

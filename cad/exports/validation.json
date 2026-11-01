@@ -10,22 +10,22 @@
       "consistent_winding": true,
       "bounds_mm": [
         [
-          -40.125,
-          -24.312,
+          -40.5,
+          -23.25,
           0.0
         ],
         [
-          40.125,
-          24.312,
+          40.5,
+          23.25,
           48.0
         ]
       ],
       "size_mm": [
-        80.25,
-        48.625,
+        81.0,
+        46.5,
         48.0
       ],
-      "volume_mm3": 124394.76
+      "volume_mm3": 120215.53
     },
     {
       "file": "exports/dock-2-bay.stl",
@@ -35,22 +35,22 @@
       "consistent_winding": true,
       "bounds_mm": [
         [
-          -76.5,
-          -24.312,
+          -77.25,
+          -23.25,
           0.0
         ],
         [
-          76.5,
-          24.312,
+          77.25,
+          23.25,
           48.0
         ]
       ],
       "size_mm": [
-        153.0,
-        48.625,
+        154.5,
+        46.5,
         48.0
       ],
-      "volume_mm3": 235397.4
+      "volume_mm3": 227661.19
     },
     {
       "file": "exports/fit-coupon.stl",
@@ -60,22 +60,22 @@
       "consistent_winding": true,
       "bounds_mm": [
         [
-          -32.1,
-          -19.45,
+          -32.4,
+          -18.6,
           0.0
         ],
         [
-          32.1,
-          19.45,
+          32.4,
+          18.6,
           5.0
         ]
       ],
       "size_mm": [
-        64.2,
-        38.9,
+        64.8,
+        37.2,
         5.0
       ],
-      "volume_mm3": 5546.19
+      "volume_mm3": 5480.19
     }
   ],
   "parameter_checks": [
@@ -141,6 +141,11 @@
     },
     {
       "case": "invalid-bay-count",
+      "expected_valid": false,
+      "passed": true
+    },
+    {
+      "case": "pocket-enters-screen-bulge",
       "expected_valid": false,
       "passed": true
     },

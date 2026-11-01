@@ -1,5 +1,5 @@
 // Original 5x7 bitmap glyphs, rows stored as five low bits. Fixed 6x8 cell.
-static const char kAlphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 .:-/?>+_(),";
+static const char kAlphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 .:-/?>+_(),%";
 static const uint8_t kGlyphs[][7] = {
  {14,17,17,31,17,17,17},{30,17,17,30,17,17,30},{14,17,16,16,16,17,14},
  {30,17,17,17,17,17,30},{31,16,16,30,16,16,31},{31,16,16,30,16,16,16},
@@ -16,6 +16,7 @@ static const uint8_t kGlyphs[][7] = {
  {14,17,17,15,1,1,14},{0,0,0,0,0,0,0},{0,0,0,0,0,6,6},
  {0,6,6,0,6,6,0},{0,0,0,31,0,0,0},{1,2,2,4,8,8,16},
  {14,17,1,2,4,0,4},{16,8,4,2,4,8,16},{0,4,4,31,4,4,0},
- {0,0,0,0,0,0,31},{2,4,8,8,8,4,2},{8,4,2,2,2,4,8},{0,0,0,0,6,4,8}
+ {0,0,0,0,0,0,31},{2,4,8,8,8,4,2},{8,4,2,2,2,4,8},{0,0,0,0,6,4,8},
+ {24,25,2,4,8,19,3}
 };
 static_assert(sizeof(kGlyphs) / sizeof(kGlyphs[0]) == sizeof(kAlphabet)-1, "font table");

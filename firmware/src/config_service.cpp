@@ -1,17 +1,23 @@
 #include "config_service.h"
 #include "../../contracts/config_framing.h"
-#include <BLEDevice.h>
 #include <Preferences.h>
-#include <atomic>
 #include <esp_system.h>
-#include <freertos/FreeRTOS.h>
-#include <freertos/queue.h>
 #include <mbedtls/sha256.h>
 #include <memory>
+#include <stdlib.h>
 
 namespace uc {
 ConfigService configService;
 namespace {
+#if defined(UBERCLICKER_ROLE_RX) && defined(UBERCLICKER_ROLE_TX)
+#error "Select exactly one firmware role"
+#elif defined(UBERCLICKER_ROLE_RX)
+constexpr const char *kFirmwareRole = "rx";
+#elif defined(UBERCLICKER_ROLE_TX)
+constexpr const char *kFirmwareRole = "tx";
+#else
+constexpr const char *kFirmwareRole = nullptr;
+#endif
 String randomHex(size_t n) {
   String s;
   const char *h = "0123456789abcdef";
@@ -79,20 +85,44 @@ bool text(JsonVariantConst v, size_t lo, size_t hi) {
   return value.size() >= lo && value.size() <= hi &&
          strlen(value.c_str()) == value.size();
 }
-void defaults(JsonDocument &d) {
+// Keep dormant local mappings when upgrading a LoRa-only TX.
+void migrateActions(JsonVariant c) {
+  bool tx = kFirmwareRole ? !strcmp(kFirmwareRole, "tx") : c["role"] != "rx";
+  for (auto p : c["profiles"].as<JsonArray>()) {
+    for (const char *event : {"previous", "next"}) {
+      JsonDocument old;
+      old.set(p[event]);
+      old["type"] = p["output"];
+      old["host"] = p["host"];
+      old["port"] = p["port"];
+      old["enabled"] = !tx || c["route"] == "direct";
+      auto actions = p[event].to<JsonArray>();
+      if (tx) {
+        auto radio = actions.add<JsonObject>();
+        radio.set(old.as<JsonObjectConst>());
+        radio["type"] = "lora"; radio["enabled"] = true;
+        radio["host"] = ""; radio["port"] = 8000;
+      }
+      actions.add(old.as<JsonObjectConst>());
+    }
+    p.remove("output"); p.remove("host"); p.remove("port");
+  }
+  c.remove("route");
+  c["schemaVersion"] = 4;
+}
+void defaults(JsonDocument &d, const String &deviceName) {
   d.clear();
-  d["schemaVersion"] = 2;
+  d["schemaVersion"] = 3;
   d["revision"] = 0;
-  d["role"] = "tx";
+  d["role"] = kFirmwareRole ? kFirmwareRole : "tx";
   d["route"] = "lora";
   d["activeProfile"] = 0;
   d["radio"] = "balanced";
   d["peers"].to<JsonArray>();
   d["activePeer"] = 0;
-  d["wifi"]["ssid"] = "";
-  d["wifi"]["configured"] = false;
+  d["wifi"].to<JsonArray>();
   auto p = d["profiles"].to<JsonArray>().add<JsonObject>();
-  p["name"] = "Presenter";
+  p["name"] = deviceName;
   p["output"] = "ble_keyboard";
   p["host"] = "";
   p["port"] = 8000;
@@ -108,10 +138,10 @@ void defaults(JsonDocument &d) {
     a["osc"] = prev ? "/previous" : "/next";
     a["payload"] = prev ? "previous" : "next";
   }
+  migrateActions(d.as<JsonVariant>());
 }
-bool validAction(JsonVariantConst a) {
-  if (!keys(a, "|key||modifiers||midi||osc||payload|") ||
-      !integer(a["key"], 0, 101) || !integer(a["modifiers"], 0, 255) ||
+bool validMapping(JsonVariantConst a) {
+  if (!integer(a["key"], 0, 101) || !integer(a["modifiers"], 0, 255) ||
       !text(a["payload"], 0, 128) || !text(a["osc"], 1, 64))
     return false;
   String osc = a["osc"].as<String>();
@@ -126,15 +156,33 @@ bool validAction(JsonVariantConst a) {
          integer(m["channel"], 1, 16) && integer(m["number"], 0, 127) &&
          integer(m["value"], 0, 127);
 }
-bool validConfig(JsonVariantConst c, const String &id) {
-  if (!keys(c, "|schemaVersion||revision||role||route||activeProfile||profiles|"
-               "|wifi||radio||peers||activePeer|") ||
-      c.as<JsonObjectConst>().size() != 10 || !c["schemaVersion"].is<int>() ||
-      c["schemaVersion"] != 2 || !c["revision"].is<uint32_t>() ||
+bool validEndpoint(JsonVariantConst a, const char *typeKey) {
+  if (!text(a["host"], 0, 63) || !integer(a["port"], 1, 65535)) return false;
+  String type = a[typeKey].as<String>(), host = a["host"].as<String>();
+  if (!oneOf(type, "|lora||ble_keyboard||ble_midi||osc_udp||udp||tcp||cloud|")) return false;
+  for (char ch : host)
+    if (!isalnum((unsigned char)ch) && ch != '.' && ch != '-') return false;
+  if ((type == "osc_udp" || type == "udp" || type == "tcp") && host.isEmpty()) return false;
+  return type != "cloud" || (host == "api.uberclicker.com" && a["port"] == 443);
+}
+bool validActions(JsonVariantConst actions) {
+  if (!actions.is<JsonArrayConst>() || actions.size() > 8) return false;
+  for (auto a : actions.as<JsonArrayConst>()) {
+    if (!keys(a, "|type||enabled||host||port||key||modifiers||midi||osc||payload|") ||
+        a.size() != 9 || !a["enabled"].is<bool>() || !validEndpoint(a, "type") || !validMapping(a)) return false;
+
+  }
+  return true;
+}
+bool validConfig(JsonVariantConst c, const String &id, bool legacy = false) {
+  if (!keys(c, legacy ? "|schemaVersion||revision||role||route||activeProfile||profiles||wifi||radio||peers||activePeer|" :
+                         "|schemaVersion||revision||role||activeProfile||profiles||wifi||radio||peers||activePeer|") ||
+      c.as<JsonObjectConst>().size() != (legacy ? 10 : 9) || !c["schemaVersion"].is<int>() ||
+      c["schemaVersion"] != (legacy ? 3 : 4) || !c["revision"].is<uint32_t>() ||
       c["revision"].as<uint32_t>() == UINT32_MAX)
     return false;
   if (!oneOf(c["role"].as<String>(), "|tx||rx|") ||
-      !oneOf(c["route"].as<String>(), "|lora||direct|") ||
+      (legacy && !oneOf(c["route"].as<String>(), "|lora||direct|")) ||
       !oneOf(c["radio"].as<String>(), "|balanced||long_range|"))
     return false;
   auto ps = c["profiles"].as<JsonArrayConst>();
@@ -142,25 +190,23 @@ bool validConfig(JsonVariantConst c, const String &id) {
       !integer(c["activeProfile"], 0, ps.size() - 1))
     return false;
   for (auto p : ps) {
-    if (!keys(p, "|name||output||host||port||previous||next|") ||
-        p.as<JsonObjectConst>().size() != 6 || !text(p["name"], 1, 24) ||
-        !text(p["host"], 0, 63) || !integer(p["port"], 1, 65535) ||
-        !validAction(p["previous"]) || !validAction(p["next"]))
-      return false;
-    String output = p["output"].as<String>(), host = p["host"].as<String>();
-    if (!oneOf(output, "|ble_keyboard||ble_midi||osc_udp||udp||tcp|"))
-      return false;
-    for (char ch : host)
-      if (!isalnum((unsigned char)ch) && ch != '.' && ch != '-')
-        return false;
-    if ((output == "osc_udp" || output == "udp" || output == "tcp") &&
-        host.isEmpty())
-      return false;
+    if (legacy) {
+      if (!keys(p, "|name||output||host||port||previous||next|") || p.size() != 6 ||
+          !text(p["name"], 1, 24) || p["output"] == "lora" || !validEndpoint(p, "output")) return false;
+      for (const char *event : {"previous", "next"})
+        if (!keys(p[event], "|key||modifiers||midi||osc||payload|") || p[event].size() != 5 || !validMapping(p[event])) return false;
+    } else if (!keys(p, "|name||previous||next|") || p.size() != 3 || !text(p["name"], 1, 24) ||
+               !validActions(p["previous"]) || !validActions(p["next"])) return false;
   }
-  auto w = c["wifi"];
-  if (!keys(w, "|ssid||configured|") || w.as<JsonObjectConst>().size() != 2 ||
-      !text(w["ssid"], 0, 32) || !w["configured"].is<bool>())
-    return false;
+  auto networks = c["wifi"].as<JsonArrayConst>();
+  if (!networks) return false;
+  for (size_t i = 0; i < networks.size(); ++i) {
+    auto w = networks[i];
+    if (!keys(w, "|ssid||configured|") || w.as<JsonObjectConst>().size() != 2 ||
+        !text(w["ssid"], 1, 32) || !w["configured"].is<bool>()) return false;
+    for (size_t j = 0; j < i; ++j)
+      if (networks[j]["ssid"] == w["ssid"]) return false;
+  }
   auto peers = c["peers"].as<JsonArrayConst>();
   if (!peers || peers.size() > (c["role"] == "rx" ? 1 : 8) ||
       !integer(c["activePeer"], 0, peers.size() ? peers.size() - 1 : 0))
@@ -181,63 +227,21 @@ bool validConfig(JsonVariantConst c, const String &id) {
   return true;
 }
 } // namespace
-struct ConfigService::Impl : BLECharacteristicCallbacks {
-  struct Fragment {
-    uint16_t size;
-    uint8_t data[512];
-  };
-  QueueHandle_t queue = nullptr;
-  ConfigFrames frames;
-  BLECharacteristic *notify = nullptr;
-  BLEServer *server = nullptr;
-  uint32_t sentFragmentAt = 0;
+struct ConfigService::Impl {
   ConfigHooks hooks;
-  JsonDocument committed, staged, pairs, stagedPairs, receipts;
-  String owner, wifi, stagedWifi, session, device, version;
+  JsonDocument committed, staged, pairs, stagedPairs, receipts, wifi, stagedWifi, cloud;
+  String owner, session, device, version, initialDeviceName;
   char activeSlot = 0;
+  bool serialContext = false, editSerial = false;
   bool remoteContext = false, editRemote = false, remotePending = false,
        remoteTaken = false, remoteAvailable = false, recoveryRequired = false;
   String remotePeer, remotePayload, contextPeer, remoteOperation,
       remoteEditPeer, remoteEditSession, cancelPeer, cancelSession;
   uint32_t remoteId = 0, remoteLogicalId = 0, nextRemoteId = 1, remoteAt = 0,
            remoteProgressAt = 0;
-  uint8_t remoteStream = 0;
-  uint16_t remoteConnection = 0xffff;
   uint32_t setupAt = 0, setupDuration = 0, editAt = 0, passkey = 0;
-  bool setup = false, editing = false, authorized = false, dirtyStatus = true;
-  unsigned failures = 0;
-  std::atomic<bool> secure{false}, disconnected{false}, overflow{false};
-  std::atomic<uint16_t> connection{0xffff};
+  bool setup = false, editing = false, dirtyStatus = true;
   String response;
-  size_t responseAt = 0;
-  uint8_t responseStream = 0;
-  uint16_t responseConnection = 0xffff;
-  uint32_t responseAtTime = 0;
-  void onWrite(BLECharacteristic *c) override {
-    auto s = c->getValue();
-    Fragment f{};
-    if (s.length() > 512) {
-      overflow = true;
-      return;
-    }
-    f.size = s.length();
-    memcpy(f.data, s.c_str(), f.size);
-    if (xQueueSend(queue, &f, 0) != pdTRUE)
-      overflow = true;
-  }
-
-#if defined(CONFIG_NIMBLE_ENABLED)
-  void onWrite(BLECharacteristic *c, ble_gap_conn_desc *desc) override {
-    if (desc && desc->conn_handle == connection && desc->sec_state.encrypted &&
-        desc->sec_state.authenticated)
-      onWrite(c);
-  }
-#elif defined(CONFIG_BLUEDROID_ENABLED)
-  void onWrite(BLECharacteristic *c, esp_ble_gatts_cb_param_t *p) override {
-    if (p && p->write.conn_id == connection && secure)
-      onWrite(c);
-  }
-#endif
   void scheduleRemoteCancellation() {
     if (!remoteEditSession.isEmpty()) {
       cancelPeer = remoteEditPeer;
@@ -250,7 +254,7 @@ struct ConfigService::Impl : BLECharacteristicCallbacks {
     if (editing) {
       editing = false;
       staged.clear();
-      stagedWifi = "";
+      stagedWifi.clear();
       stagedPairs.clear();
       session = "";
       if (hooks.pauseOutput)
@@ -275,13 +279,15 @@ struct ConfigService::Impl : BLECharacteristicCallbacks {
     bytes[size] = 0;
     return String(bytes.get());
   }
-  bool save(const JsonDocument &config, const String &o, const String &w,
-            const JsonDocument &p, const JsonDocument *history = nullptr) {
+  String storedRecord(const JsonDocument &config, const String &o, const JsonDocument &w,
+                      const JsonDocument &p, const JsonDocument *history = nullptr,
+                      const JsonDocument *connection = nullptr) {
     JsonDocument r;
     r["config"] = config;
     r["owner"] = o;
     r["wifi"] = w;
     r["pairs"] = p;
+    r["cloud"] = connection ? *connection : cloud;
     r["receipts"] = history ? *history : receipts;
     String payload;
     serializeJson(r, payload);
@@ -291,6 +297,12 @@ struct ConfigService::Impl : BLECharacteristicCallbacks {
     envelope["sha256"] = digest(payload);
     String bytes;
     serializeJson(envelope, bytes);
+    return bytes;
+  }
+  bool save(const JsonDocument &config, const String &o, const JsonDocument &w,
+            const JsonDocument &p, const JsonDocument *history = nullptr,
+            const JsonDocument *connection = nullptr) {
+    String bytes = storedRecord(config, o, w, p, history, connection);
     if (bytes.length() > kConfigMaxMessage)
       return false;
     Preferences n;
@@ -319,7 +331,8 @@ struct ConfigService::Impl : BLECharacteristicCallbacks {
     return ok;
   }
   void load() {
-    defaults(committed);
+    defaults(committed, initialDeviceName);
+    wifi.to<JsonObject>();
     activeSlot = 0;
     Preferences n;
     if (!n.begin("uc-config", true))
@@ -346,7 +359,9 @@ struct ConfigService::Impl : BLECharacteristicCallbacks {
         continue;
       uint32_t rev = r["config"]["revision"];
       if (r["config"]["schemaVersion"] != 1 &&
-          r["config"]["schemaVersion"] != 2) {
+          r["config"]["schemaVersion"] != 2 &&
+          r["config"]["schemaVersion"] != 3 &&
+          r["config"]["schemaVersion"] != 4) {
         unsupported = true;
         continue;
       }
@@ -367,6 +382,28 @@ struct ConfigService::Impl : BLECharacteristicCallbacks {
           r["pairs"][old["deviceId"].as<String>()] = r["pair"];
         }
       }
+      if (r["config"]["schemaVersion"] == 2) {
+        auto old = r["config"]["wifi"];
+        if (!keys(old, "|ssid||configured|") || old.size() != 2 ||
+            !text(old["ssid"], 0, 32) || !old["configured"].is<bool>() ||
+            !text(r["wifi"], 0, 63)) continue;
+        String ssid = old["ssid"].as<String>(), password = r["wifi"].as<String>();
+        if ((!password.isEmpty() && (password.length() < 8 || ssid.isEmpty())) ||
+            old["configured"].as<bool>() != !password.isEmpty()) continue;
+        auto networks = r["config"]["wifi"].to<JsonArray>();
+        auto passwords = r["wifi"].to<JsonObject>();
+        if (!ssid.isEmpty()) {
+          auto network = networks.add<JsonObject>();
+          network["ssid"] = ssid;
+          network["configured"] = !password.isEmpty();
+          passwords[ssid] = password;
+        }
+        r["config"]["schemaVersion"] = 3;
+      }
+      if (r["config"]["schemaVersion"] == 3) {
+        if (!validConfig(r["config"], device, true)) continue;
+        migrateActions(r["config"]);
+      }
       if (!validConfig(r["config"], device))
         continue;
       bool validPairs = true;
@@ -375,13 +412,14 @@ struct ConfigService::Impl : BLECharacteristicCallbacks {
           validPairs = false;
       if (!r["owner"].is<const char *>() ||
           !(r["owner"] == "" || hex(r["owner"].as<String>(), 64)) ||
-          !r["wifi"].is<const char *>())
-        validPairs = false;
-      String password = String(r["wifi"] | "");
-      if ((!password.isEmpty() &&
-           (password.length() < 8 || password.length() > 63)) ||
-          r["config"]["wifi"]["configured"].as<bool>() != !password.isEmpty())
-        validPairs = false;
+          !r["wifi"].is<JsonObjectConst>() ||
+          r["wifi"].size() != r["config"]["wifi"].size()) validPairs = false;
+      for (auto network : r["config"]["wifi"].as<JsonArrayConst>()) {
+        auto password = r["wifi"][network["ssid"].as<String>()];
+        if (!text(password, 0, 63) ||
+            (!password.as<String>().isEmpty() && !text(password, 8, 63)) ||
+            network["configured"].as<bool>() != !password.as<String>().isEmpty()) validPairs = false;
+      }
       if (r["pairs"].as<JsonObjectConst>().size() !=
           r["config"]["peers"].size())
         validPairs = false;
@@ -403,12 +441,15 @@ struct ConfigService::Impl : BLECharacteristicCallbacks {
       }
       if (!validPairs)
         continue;
+      if (!r["cloud"].isNull() && (!keys(r["cloud"], "|room||token|") || r["cloud"].size() != 2 ||
+          !hex(r["cloud"]["room"].as<String>(), 32) || !hex(r["cloud"]["token"].as<String>(), 64))) continue;
       if (!found || rev > highest) {
         committed.set(r["config"]);
         owner = r["owner"].as<String>();
-        wifi = r["wifi"].as<String>();
+        wifi.set(r["wifi"]);
         pairs.set(r["pairs"]);
         receipts.set(r["receipts"]);
+        cloud.set(r["cloud"]);
         highest = rev;
         found = true;
         activeSlot = slot[0];
@@ -416,12 +457,28 @@ struct ConfigService::Impl : BLECharacteristicCallbacks {
     }
     n.end();
     recoveryRequired = readFailed || unsupported || (present && !found);
+    if (kFirmwareRole && found && committed["role"] != kFirmwareRole) {
+      committed["role"] = kFirmwareRole;
+      // Keep the newest saved record; incompatible topology needs recovery,
+      // never an older record or silently removed receiver relationships.
+      recoveryRequired |= !validConfig(committed, device);
+      if (!recoveryRequired) {
+        uint32_t revision = committed["revision"];
+        if (revision >= UINT32_MAX - 1)
+          recoveryRequired = true;
+        else {
+          committed["revision"] = revision + 1;
+          recoveryRequired = !save(committed, owner, wifi, pairs, &receipts);
+        }
+      }
+    }
     if (recoveryRequired) {
-      defaults(committed);
+      defaults(committed, initialDeviceName);
       owner = "";
-      wifi = "";
+      wifi.to<JsonObject>();
       pairs.clear();
       receipts.clear();
+      cloud.clear();
     }
   }
   String applyDigest(JsonVariantConst request) {
@@ -468,8 +525,6 @@ struct ConfigService::Impl : BLECharacteristicCallbacks {
     }
     response = "";
     serializeJson(d, response);
-    responseAt = 0;
-    responseAtTime = millis();
   }
   void fail(uint32_t id, const char *code) { reply(id, false, code); }
   bool secret(JsonVariantConst s, String &target, bool isPair) {
@@ -509,10 +564,13 @@ struct ConfigService::Impl : BLECharacteristicCallbacks {
       return;
     }
     String op = q["op"].as<String>();
+#if !defined(UC_CONFIG_HOST_TEST)
+    Serial.printf("Config request: %s id=%lu\n", op.c_str(), (unsigned long)id);
+#endif
     const char *allowed = "|v||id||op|";
     if (op == "receiver")
       allowed = "|v||id||op||deviceId||request|";
-    else if (op == "claim")
+    else if (op == "code")
       allowed = "|v||id||op||code|";
     else if (op == "authorize")
       allowed = "|v||id||op||token|";
@@ -524,6 +582,8 @@ struct ConfigService::Impl : BLECharacteristicCallbacks {
       allowed = "|v||id||op||transactionId|";
     else if (op == "cancel")
       allowed = "|v||id||op||session|";
+    else if (op == "cloud")
+      allowed = "|v||id||op||room||token|";
     if (!keys(q.as<JsonVariantConst>(), allowed)) {
       fail(id, "INVALID");
       return;
@@ -536,30 +596,40 @@ struct ConfigService::Impl : BLECharacteristicCallbacks {
       fail(id, "REMOTE_DENIED");
       return;
     }
+    if (remoteContext || op == "receiver") { fail(id, "UNSUPPORTED"); return; }
     if (op == "status") {
       out["deviceId"] = device;
       out["boardId"] = "thinknode_m5";
       out["firmwareVersion"] = version;
-      out["schemaVersion"] = 2;
+      out["schemaVersion"] = kConfigSchemaVersion;
       out["protocolVersion"] = 2;
       out["revision"] = committed["revision"];
       out["setup"] = setup;
       out["editing"] = editing;
       out["claimed"] = !owner.isEmpty();
       out["recoveryRequired"] = recoveryRequired;
+      out["cloud"]["room"] = cloud["room"] | "";
+      out["cloud"]["configured"] = !cloud["token"].isNull();
       auto c = out["capabilities"].to<JsonObject>();
-      c["ble_config"] = true;
+      c["ble_config"] = false;
+      c["serial_config"] = true;
+      c["cloud_output"] = true;
+      if (kFirmwareRole)
+        c["fixed_role"] = kFirmwareRole;
       c["lan_config"] = false;
       c["setup_hotspot"] = false;
       c["native_usb"] = false;
       c["maxProfiles"] = 4;
-      c["remote_config"] = remoteAvailable;
+      c["maxActionsPerEvent"] = 8;
+      c["remote_config"] = false;
+      c["physical_recovery"] = true;
+      c["broadcast_radio"] = true;
       c["maxReceivers"] = 8;
       c["ota_session"] = !remoteContext && hooks.openUpdates != nullptr;
       out["remoteEditing"] = editRemote && editing;
       out["remotePending"] = remotePending;
       auto outputs = c["outputs"].to<JsonArray>();
-      for (auto s : {"ble_keyboard", "ble_midi", "osc_udp", "udp", "tcp"})
+      for (auto s : {"lora", "ble_keyboard", "ble_midi", "osc_udp", "udp", "tcp", "cloud"})
         outputs.add(s);
       reply(id, true, nullptr, out.as<JsonVariantConst>());
       return;
@@ -568,60 +638,32 @@ struct ConfigService::Impl : BLECharacteristicCallbacks {
       fail(id, "RECOVERY_REQUIRED");
       return;
     }
-    if (!setup && !remoteContext) {
+    if (!setup && !remoteContext && !serialContext) {
       fail(id, "SETUP_REQUIRED");
       return;
     }
-    if (!secure && !remoteContext) {
+    if (!serialContext) {
       fail(id, "UNAUTHORIZED");
       return;
     }
-    if (op == "claim" || op == "authorize") {
-      bool good = false;
-      if (op == "claim") {
-        char code[7];
-        snprintf(code, 7, "%06lu", (unsigned long)passkey);
-        good = owner.isEmpty() && text(q["code"], 6, 6) &&
-               equalSecret(q["code"].as<String>(), code);
-      } else
-        good = !owner.isEmpty() && text(q["token"], 64, 64) &&
-               equalSecret(q["token"].as<String>(), owner);
-      if (!good) {
-        if (++failures >= 5) {
-          setup = false;
-          stopEdit();
-          if (hooks.pauseOutput)
-            hooks.pauseOutput(false);
-          dirtyStatus = true;
-        }
-        fail(id, failures >= 5 ? "RATE_LIMITED" : "UNAUTHORIZED");
-        return;
-      }
-      if (op == "claim") {
-        if (committed["revision"].as<uint32_t>() >= UINT32_MAX - 1) {
-          fail(id, "INVALID");
-          return;
-        }
-        String token = randomHex(32);
-        JsonDocument next;
-        next.set(committed);
-        next["revision"] = committed["revision"].as<uint32_t>() + 1;
-        if (!save(next, token, wifi, pairs)) {
-          fail(id, "PERSIST_FAILED");
-          return;
-        }
-        committed.set(next);
-        owner = token;
-        out["token"] = token;
-        dirtyStatus = true;
-      }
-      authorized = true;
-      reply(id, true, nullptr, out.as<JsonVariantConst>());
-      return;
-    }
-    if (!authorized && !remoteContext) {
-      fail(id, "UNAUTHORIZED");
-      return;
+    if (op == "code" || op == "authorize" || op == "claim" || op == "recover") { fail(id,"UNSUPPORTED"); return; }
+    if (op == "cloud") {
+      if (editing) { fail(id, "BUSY"); return; }
+      String room = q["room"].as<String>(), token = q["token"].as<String>();
+      bool clear = q["room"] == "" && q["token"] == "";
+      if (committed["role"] != "tx" || (!clear && (!hex(room, 32) || !hex(token, 64))) ||
+          committed["revision"].as<uint32_t>() >= UINT32_MAX - 1) { fail(id, "INVALID"); return; }
+      if (clear && hooks.clearCloudAccount && !hooks.clearCloudAccount()) { fail(id, "PERSIST_FAILED"); return; }
+      JsonDocument next, connection;
+      next.set(committed); next["revision"] = committed["revision"].as<uint32_t>() + 1;
+      if (!clear) { connection["room"] = room; connection["token"] = token; }
+      if (hooks.pauseOutput) hooks.pauseOutput(true);
+      bool saved = save(next, owner, wifi, pairs, nullptr, &connection);
+      if (saved) { committed.set(next); cloud.set(connection); if (hooks.changed) hooks.changed(); }
+      if (hooks.pauseOutput) hooks.pauseOutput(setup || recoveryRequired);
+      if (!saved) { fail(id, "PERSIST_FAILED"); return; }
+      out["room"] = room; out["configured"] = !clear;
+      reply(id, true, nullptr, out.as<JsonVariantConst>()); dirtyStatus = true; return;
     }
     if (op == "updates") {
       if (editing || remotePending || !remoteEditSession.isEmpty() || !cancelSession.isEmpty()) {
@@ -640,57 +682,6 @@ struct ConfigService::Impl : BLECharacteristicCallbacks {
       reply(id, true, nullptr, out.as<JsonVariantConst>());
       return;
     }
-    if (op == "receiver") {
-      String target = q["deviceId"].as<String>();
-      bool found = false;
-      for (auto p : committed["peers"].as<JsonArrayConst>())
-        if (p["deviceId"] == target && p["adminAuthorized"] == true)
-          found = true;
-      auto request = q["request"];
-      if (committed["role"] != "tx" || !found || !request.is<JsonObject>() ||
-          !request["v"].isUnbound() || !request["id"].isUnbound() ||
-          !oneOf(request["op"].as<String>(),
-                 "|status||read||begin||validate||apply||cancel||result|")) {
-        fail(id, "REMOTE_DENIED");
-        return;
-      }
-      if (!remoteAvailable) {
-        fail(id, "UNSUPPORTED");
-        return;
-      }
-      if (remotePending || editing) {
-        fail(id, "BUSY");
-        return;
-      }
-      if (nextRemoteId >= 2147483647) {
-        fail(id, "RATE_LIMITED");
-        return;
-      }
-      uint32_t bridgeId = nextRemoteId++;
-      JsonDocument envelope;
-      envelope.set(request);
-      envelope["v"] = 2;
-      envelope["id"] = bridgeId;
-      remotePayload = "";
-      serializeJson(envelope, remotePayload);
-      if (remotePayload.length() > kConfigMaxMessage) {
-        fail(id, "TOO_LARGE");
-        return;
-      }
-      remotePending = true;
-      remoteTaken = false;
-      remotePeer = target;
-      remoteOperation = request["op"].as<String>();
-      remoteId = bridgeId;
-      remoteLogicalId = id;
-      remoteAt = remoteProgressAt = millis();
-      remoteConnection = connection.load();
-      remoteStream = responseStream;
-      setupAt = millis();
-      setupDuration = 120000;
-      dirtyStatus = true;
-      return;
-    }
     if (op == "read") {
       out["config"] = committed;
       reply(id, true, nullptr, out.as<JsonVariantConst>());
@@ -704,9 +695,10 @@ struct ConfigService::Impl : BLECharacteristicCallbacks {
       editing = true;
       editAt = millis();
       editRemote = remoteContext;
+      editSerial = serialContext;
       session = randomHex(8);
       staged.set(committed);
-      stagedWifi = wifi;
+      stagedWifi.set(wifi);
       stagedPairs.set(pairs);
       if (hooks.pauseOutput)
         hooks.pauseOutput(true);
@@ -731,7 +723,6 @@ struct ConfigService::Impl : BLECharacteristicCallbacks {
       }
       committed.set(next);
       owner = "";
-      authorized = false;
       stopEdit();
       setup = false;
       if (hooks.pauseOutput)
@@ -777,7 +768,7 @@ struct ConfigService::Impl : BLECharacteristicCallbacks {
       fail(id, "UNSUPPORTED");
       return;
     }
-    if (!editing || q["session"] != session || editRemote != remoteContext) {
+    if (!editing || q["session"] != session || editSerial != serialContext || editRemote != remoteContext) {
       fail(id, "SESSION_EXPIRED");
       return;
     }
@@ -787,7 +778,8 @@ struct ConfigService::Impl : BLECharacteristicCallbacks {
       return;
     }
     if (op == "validate") {
-      if (!validConfig(q["config"], device) ||
+      if ((kFirmwareRole && q["config"]["role"] != kFirmwareRole) ||
+          !validConfig(q["config"], device) ||
           q["config"]["revision"] != committed["revision"] ||
           !keys(q["secrets"], "|wifi||pairs|") ||
           q["secrets"].as<JsonObjectConst>().size() != 2 ||
@@ -804,15 +796,31 @@ struct ConfigService::Impl : BLECharacteristicCallbacks {
         fail(id, "REMOTE_DENIED");
         return;
       }
-      String w = wifi;
-      JsonDocument candidatePairs;
+      JsonDocument w, candidatePairs;
+      auto passwords = w.to<JsonObject>();
       candidatePairs.set(pairs);
-      if (!secret(q["secrets"]["wifi"], w, false) ||
-          (q["config"]["wifi"]["ssid"].as<String>().isEmpty() &&
-           !w.isEmpty()) ||
-          q["config"]["wifi"]["configured"].as<bool>() != !w.isEmpty()) {
-        fail(id, "INVALID");
-        return;
+      auto operations = q["secrets"]["wifi"].as<JsonArrayConst>();
+      auto networks = q["config"]["wifi"].as<JsonArrayConst>();
+      if (!operations || operations.size() != networks.size()) {
+        fail(id, "INVALID"); return;
+      }
+      for (size_t index = 0; index < networks.size(); ++index) {
+        auto network = networks[index];
+        auto operation = operations[index];
+        String ssid = network["ssid"].as<String>();
+        if (!keys(operation, "|ssid||op||value|") || operation["ssid"] != ssid ||
+            (operation["op"] == "keep" && wifi[ssid].isNull())) {
+          fail(id, "INVALID"); return;
+        }
+        JsonDocument action;
+        action.set(operation);
+        action.remove("ssid");
+        String password = wifi[ssid] | "";
+        if (!secret(action.as<JsonVariantConst>(), password, false) ||
+            network["configured"].as<bool>() != !password.isEmpty()) {
+          fail(id, "INVALID"); return;
+        }
+        passwords[ssid] = password;
       }
       JsonDocument seen;
       for (auto operation : q["secrets"]["pairs"].as<JsonArrayConst>()) {
@@ -868,8 +876,14 @@ struct ConfigService::Impl : BLECharacteristicCallbacks {
         fail(id, "INVALID");
         return;
       }
+      JsonDocument candidate;
+      candidate.set(q["config"]);
+      candidate["revision"] = committed["revision"].as<uint32_t>() + 1;
+      if (storedRecord(candidate, owner, w, candidatePairs).length() > kConfigMaxMessage) {
+        fail(id, "TOO_LARGE"); return;
+      }
       staged.set(q["config"]);
-      stagedWifi = w;
+      stagedWifi.set(w);
       stagedPairs.set(candidatePairs);
       out["valid"] = true;
       reply(id, true, nullptr, out.as<JsonVariantConst>());
@@ -908,7 +922,7 @@ struct ConfigService::Impl : BLECharacteristicCallbacks {
     }
     committed.set(staged);
     receipts.set(history);
-    wifi = stagedWifi;
+    wifi.set(stagedWifi);
     pairs.set(stagedPairs);
     stopEdit();
     out["revision"] = committed["revision"];
@@ -920,34 +934,20 @@ struct ConfigService::Impl : BLECharacteristicCallbacks {
     dirtyStatus = true;
   }
 };
-bool ConfigService::begin(BLEServer *server, const String &device,
-                          const String &version, ConfigHooks hooks) {
-  if (impl_ || !server || !hex(device, 12))
+bool ConfigService::begin(const String &device, const String &version,
+                          ConfigHooks hooks, const String &defaultDeviceName) {
+  if (impl_ || !hex(device, 12))
     return false;
   impl_ = new Impl();
   auto &i = *impl_;
   i.device = device;
   i.version = version;
   i.hooks = hooks;
-  i.server = server;
-  i.queue = xQueueCreate(16, sizeof(Impl::Fragment));
-  if (!i.queue)
-    return false;
+  char suffix[5];snprintf(suffix,sizeof(suffix),"%04X",unsigned(strtoul(device.c_str()+8,nullptr,16)));
+  i.initialDeviceName = defaultDeviceName.isEmpty() ? String(suffix) : defaultDeviceName;
   i.load();
   if (i.recoveryRequired && i.hooks.pauseOutput)
     i.hooks.pauseOutput(true);
-  auto service = server->createService(kConfigServiceUuid);
-  auto write = service->createCharacteristic(
-      kConfigWriteUuid, BLECharacteristic::PROPERTY_WRITE |
-                            BLECharacteristic::PROPERTY_WRITE_ENC |
-                            BLECharacteristic::PROPERTY_WRITE_AUTHEN);
-#if CONFIG_BLUEDROID_ENABLED
-  write->setAccessPermissions(ESP_GATT_PERM_WRITE_ENC_MITM);
-#endif
-  write->setCallbacks(impl_);
-  i.notify = service->createCharacteristic(kConfigNotifyUuid,
-                                           BLECharacteristic::PROPERTY_NOTIFY);
-  service->start();
   return true;
 }
 void ConfigService::poll() {
@@ -955,114 +955,10 @@ void ConfigService::poll() {
     return;
   auto &i = *impl_;
   uint32_t now = millis();
-  if (i.disconnected.exchange(false)) {
-    i.authorized = false;
-    if (!i.editRemote)
-      i.stopEdit();
-    i.scheduleRemoteCancellation();
-    i.remotePending = false;
-    i.remotePayload = "";
-    if (i.setup) {
-      i.setupAt = now;
-      i.setupDuration = 120000;
-      i.dirtyStatus = true;
-    }
-    i.frames.clear();
-    xQueueReset(i.queue);
-    i.response = "";
-  }
   if (i.setup && now - i.setupAt >= i.setupDuration)
     exitSetup();
   if (i.editing && uint32_t(now - i.editAt) >= 120000)
     i.stopEdit();
-  if (i.frames.used && (uint32_t(now - i.frames.touched) >= 10000 ||
-                        uint32_t(now - i.frames.started) >= 60000))
-    i.frames.clear();
-  if (i.overflow.exchange(false)) {
-    i.frames.clear();
-    i.fail(0, "TOO_LARGE");
-    xQueueReset(i.queue);
-  }
-  if (i.remotePending && (uint32_t(now - i.remoteAt) >= 3600000 ||
-                          uint32_t(now - i.remoteProgressAt) >= 120000)) {
-    i.responseStream = i.remoteStream;
-    i.responseConnection = i.remoteConnection;
-    i.fail(i.remoteLogicalId, "REMOTE_TIMEOUT");
-    i.remotePending = false;
-    i.remotePayload = "";
-  }
-  if (i.response.isEmpty() && !i.remotePending) {
-    Impl::Fragment f;
-    unsigned processed = 0;
-    while (processed++ < 16 && xQueueReceive(i.queue, &f, 0) == pdTRUE) {
-      int r = i.frames.feed(f.data, f.size, now);
-      if (r < 0) {
-        i.fail(0, r == -2 ? "TOO_LARGE" : "FRAMING");
-        break;
-      }
-      if (r == 1) {
-        i.responseStream = i.frames.stream;
-        i.responseConnection = i.connection.load();
-        i.handle(i.frames.bytes, i.frames.used);
-        i.frames.clear();
-        break;
-      }
-    }
-  }
-  if (!i.response.isEmpty()) {
-    if (now - i.responseAtTime > 10000) {
-      i.response = "";
-      i.authorized = false;
-      i.stopEdit();
-    } else {
-#if !defined(UC_CONFIG_HOST_TEST)
-      if (uint32_t(now - i.sentFragmentAt) < 5)
-        return;
-#endif
-      i.sentFragmentAt = now;
-      size_t att = 20;
-#if !defined(UC_CONFIG_HOST_TEST)
-      att = min(
-          (size_t)512,
-          (size_t)max(20, (int)i.server->getPeerMTU(i.responseConnection) - 3));
-#endif
-      uint8_t f[512] = {0x55,
-                        0x43,
-                        1,
-                        i.responseStream,
-                        (uint8_t)i.responseAt,
-                        (uint8_t)(i.responseAt >> 8),
-                        (uint8_t)i.response.length(),
-                        (uint8_t)(i.response.length() >> 8)};
-      size_t n = min(att - 8, i.response.length() - i.responseAt);
-      memcpy(f + 8, i.response.c_str() + i.responseAt, n);
-      bool submitted = false;
-#if defined(CONFIG_NIMBLE_ENABLED) && !defined(UC_CONFIG_HOST_TEST)
-      // Arduino BLE notify() broadcasts to every subscriber. Target the
-      // authorized request connection explicitly so a separate HID client
-      // cannot receive tokens.
-      ble_gap_conn_desc desc{};
-      if (i.responseConnection == i.connection &&
-          ble_gap_conn_find(i.responseConnection, &desc) == 0 &&
-          desc.sec_state.encrypted && desc.sec_state.authenticated) {
-        os_mbuf *buffer = ble_hs_mbuf_from_flat(f, n + 8);
-        if (buffer)
-          submitted =
-              ble_gatts_notify_custom(i.responseConnection,
-                                      i.notify->getHandle(), buffer) == 0;
-      }
-#elif defined(UC_CONFIG_HOST_TEST)
-      i.notify->setValue(f, n + 8);
-      i.notify->notify();
-      submitted = true;
-#endif
-      if (!submitted)
-        return; // Retry congestion until the bounded response deadline.
-      i.responseAt += n;
-      if (i.responseAt >= i.response.length())
-        i.response = "";
-    }
-  }
   if (i.dirtyStatus) {
     i.dirtyStatus = false;
     if (i.hooks.statusChanged)
@@ -1074,12 +970,10 @@ void ConfigService::enterSetup(uint32_t duration) {
     return;
   auto &i = *impl_;
   i.stopEdit();
-  i.authorized = false;
   i.setup = true;
   i.setupAt = millis();
   i.setupDuration = min(duration, (uint32_t)120000);
   i.passkey = 100000 + esp_random() % 900000;
-  i.failures = 0;
   i.dirtyStatus = true;
   if (i.hooks.pauseOutput)
     i.hooks.pauseOutput(true);
@@ -1089,32 +983,14 @@ void ConfigService::exitSetup() {
     return;
   auto &i = *impl_;
   i.setup = false;
-  i.authorized = false;
   if (!i.editRemote)
     i.stopEdit();
   i.scheduleRemoteCancellation();
   i.remotePending = false;
   i.remotePayload = "";
-  i.frames.clear();
   i.dirtyStatus = true;
   if (i.hooks.pauseOutput)
     i.hooks.pauseOutput(i.editing || i.recoveryRequired);
-}
-void ConfigService::onSecurity(uint16_t c, bool encrypted, bool authenticated) {
-  if (!impl_)
-    return;
-  if (impl_->connection != c)
-    impl_->disconnected = true;
-  impl_->connection = c;
-  impl_->secure = encrypted && authenticated;
-  if (!impl_->secure)
-    impl_->disconnected = true;
-}
-void ConfigService::onDisconnect(uint16_t c) {
-  if (impl_ && impl_->connection == c) {
-    impl_->secure = false;
-    impl_->disconnected = true;
-  }
 }
 const JsonDocument &ConfigService::settings() const { return impl_->committed; }
 ConfigStatus ConfigService::status() const {
@@ -1136,9 +1012,13 @@ ConfigStatus ConfigService::status() const {
 bool ConfigService::outputPaused() const {
   return impl_ && (impl_->editing || impl_->setup || impl_->recoveryRequired);
 }
-String ConfigService::wifiPassword() const {
-  return impl_ ? impl_->wifi : String();
+String ConfigService::wifiPassword(const String &ssid) const {
+  if (!impl_) return String();
+  String name = ssid.isEmpty() ? impl_->committed["wifi"][0]["ssid"].as<String>() : ssid;
+  return impl_->wifi[name] | "";
 }
+String ConfigService::cloudRoom() const { return impl_ ? String(impl_->cloud["room"] | "") : String(); }
+String ConfigService::cloudToken() const { return impl_ ? String(impl_->cloud["token"] | "") : String(); }
 String ConfigService::pairKeyHex(const String &peerId) const {
   if (!impl_)
     return String();
@@ -1182,7 +1062,7 @@ void ConfigService::noteRemoteProgress(const String &peerId) {
   uint32_t now = millis();
   if (i.remotePending && i.remotePeer == peerId) {
     i.remoteProgressAt = now;
-    if (i.setup && i.authorized) {
+    if (i.setup) {
       i.setupAt = now;
       i.setupDuration = 120000;
     }
@@ -1201,8 +1081,6 @@ void ConfigService::completeRemoteRequest(uint32_t correlation,
     return;
   auto &i = *impl_;
   JsonDocument received, result;
-  i.responseStream = i.remoteStream;
-  i.responseConnection = i.remoteConnection;
   if (response.length() > kConfigMaxMessage ||
       deserializeJson(received, response) || received["v"] != 2 ||
       received["id"] != correlation || !received["ok"].is<bool>())
@@ -1231,8 +1109,6 @@ String ConfigService::processRemoteRequest(const String &controllerId,
     return String();
   auto &i = *impl_;
   String saved = i.response;
-  size_t at = i.responseAt;
-  uint32_t timestamp = i.responseAtTime;
   i.remoteContext = true;
   i.contextPeer = controllerId;
   if (request.length() > kConfigMaxMessage)
@@ -1245,10 +1121,23 @@ String ConfigService::processRemoteRequest(const String &controllerId,
       i.editRemote)
     i.editAt = millis();
   i.response = saved;
-  i.responseAt = at;
-  i.responseAtTime = timestamp;
   i.remoteContext = false;
   i.contextPeer = "";
+  return result;
+}
+String ConfigService::processSerialRequest(const String &request) {
+  if (!impl_)
+    return "";
+  auto &i = *impl_;
+  String saved = i.response;
+  i.serialContext = true;
+  if (request.length() > kConfigMaxMessage)
+    i.fail(0, "TOO_LARGE");
+  else
+    i.handle((const uint8_t *)request.c_str(), request.length());
+  String result = i.response;
+  i.response = saved;
+  i.serialContext = false;
   return result;
 }
 bool ConfigService::factoryReset() {
@@ -1263,11 +1152,12 @@ bool ConfigService::factoryReset() {
     return false;
   auto &i = *impl_;
   i.stopEdit();
-  defaults(i.committed);
+  defaults(i.committed, i.initialDeviceName);
   i.owner = "";
-  i.wifi = "";
+  i.wifi.to<JsonObject>();
   i.pairs.clear();
   i.receipts.clear();
+  i.cloud.clear();
   i.activeSlot = 0;
   i.recoveryRequired = false;
   i.remotePending = false;
@@ -1275,12 +1165,7 @@ bool ConfigService::factoryReset() {
   i.remoteEditSession = "";
   i.cancelSession = "";
   i.cancelPeer = "";
-  i.authorized = false;
-  i.frames.clear();
   i.response = "";
-  xQueueReset(i.queue);
-  i.secure = false;
-  i.connection = 0xffff;
   if (i.hooks.clearBonds)
     i.hooks.clearBonds();
   enterSetup();

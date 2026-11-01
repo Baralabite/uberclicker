@@ -19,6 +19,15 @@ function fixture(overrides = {}) {
   return { session: new FlashSession(release, loader, { async disconnect() {} }), writes: () => writes };
 }
 test('valid release and exact hashes', async () => { validateManifest(manifest); await validateImage(manifest.images[0], bytes); });
+test('v4 releases require USB-only configuration, broadcast radio and complete settings migration', () => {
+  const v4 = { ...structuredClone(manifest), settingsSchemaVersion: 4, configProtocolVersion: 2,
+    configTransport: 'usb_serial', radioMode: 'broadcast', bleFramingVersion: 0, remoteConfigRadioVersion: 0,
+    preserveSettingsSchemas: [1, 2, 3, 4], settingsMigration: 'atomic-on-apply-v1-v3-to-v4' };
+  validateManifest(v4);
+  for (const fields of [{ configProtocolVersion: 4 }, { configTransport: 'ble' }, { radioMode: 'paired' },
+    { bleFramingVersion: 1 }, { remoteConfigRadioVersion: 2 }, { preserveSettingsSchemas: [4] }, { settingsMigration: 'none' }])
+    assert.throws(() => validateManifest({ ...v4, ...fields }));
+});
 test('v2 schema, logical protocol, BLE framing, radio management and migration stay distinct', () => {
   const v2 = { ...structuredClone(manifest), settingsSchemaVersion: 2, configProtocolVersion: 2,
     bleFramingVersion: 1, remoteConfigRadioVersion: 2, preserveSettingsSchemas: [1, 2], settingsMigration: 'atomic-on-apply-v1-to-v2' };

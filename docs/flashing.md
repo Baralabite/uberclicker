@@ -6,6 +6,37 @@ UI review and physical hardware acceptance. CI and serial mocks do not establish
 a successful hardware flash. Do not flash a connected device without its owner's
 approval.
 
+## Flash locally as TX or RX
+
+From the repository root, with PlatformIO installed and the intended device
+connected by USB:
+
+```sh
+./flash.sh tx
+./flash.sh rx
+```
+
+Each command builds and uploads firmware with that role fixed. RX stays RX after
+reboots and factory resets, including when previously saved settings said TX.
+The app displays the firmware-selected role and disables changing it. To choose
+a specific device, pass its serial port, for example
+`./flash.sh rx /dev/cu.wchusbserial210`.
+
+By default the script preserves NVS, including profile names, ownership, Wi-Fi
+and compatible pair settings. To start fresh, run `./flash.sh rx --erase` (or
+`./flash.sh tx --erase`). The optional serial port can go before or after `--erase`.
+This builds first, then erases all flash and uploads firmware. It deletes all
+saved settings, including profiles, ownership, Wi-Fi credentials and pair keys.
+The fresh device name defaults to the last four hex digits of its Bluetooth MAC.
+The selected role is saved atomically with a new settings revision on first boot
+when it differs from the stored role. A failed save keeps configuration locked.
+Converting a Tx with multiple receivers to Rx requires reducing it to one
+relationship first; incompatible saved topology
+locks configuration for recovery instead of deleting relationships or loading an
+older record. These commands use the current OTA partition layout; an older
+single-slot installation needs the explicit migration described below first.
+The original `thinknode_m5` environment remains app-configurable.
+
 ## Browser installation
 
 Use desktop Chrome or Edge on HTTPS (localhost also works for development), a USB
@@ -46,8 +77,8 @@ must not be treated as a settings-preserving upgrade.
 ## Opt-in Wi-Fi OTA updates
 
 After installing an OTA-capable release by USB, configure Wi-Fi through the app.
-Open physical setup (**Pair new RX** on Tx, **App setup** on Rx), connect and authorize
-the local clicker in the BLE app, then choose **Open update screen**. Finish or
+Connect the local TX or RX by USB serial in the desktop browser app, then choose
+**Open firmware update screen**. Serial is trusted without opening pairing/setup. Finish or
 cancel any edit first. This opens only the clicker's update screen; press its
 physical **B1 Check** to contact the update feed. The three-item Tx menu stays
 unchanged. Opening this screen enables OTA for that session only;

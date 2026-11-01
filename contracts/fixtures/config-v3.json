@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 3,
+  "revision": 0,
+  "role": "tx",
+  "route": "lora",
+  "activeProfile": 0,
+  "profiles": [
+    {
+      "name": "0A8F",
+      "output": "ble_keyboard",
+      "host": "",
+      "port": 8000,
+      "previous": {
+        "key": 80,
+        "modifiers": 0,
+        "midi": {
+          "type": "note",
+          "channel": 1,
+          "number": 60,
+          "value": 100
+        },
+        "osc": "/previous",
+        "payload": "previous"
+      },
+      "next": {
+        "key": 79,
+        "modifiers": 0,
+        "midi": {
+          "type": "note",
+          "channel": 1,
+          "number": 62,
+          "value": 100
+        },
+        "osc": "/next",
+        "payload": "next"
+      }
+    }
+  ],
+  "wifi": [],
+  "radio": "balanced",
+  "peers": [],
+  "activePeer": 0
+}

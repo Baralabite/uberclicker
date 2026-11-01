@@ -1,7 +1,7 @@
 # Configuration architecture proposal
 
 Original architecture proposal, retained as a target. The [current implementation](../README.md)
-now supplies the BLE configuration service and native/browser clients. The authoritative
+uses USB serial configuration only on TX and RX; Bluetooth is reserved for keyboard/MIDI output. The access paths below are historical proposals. The authoritative
 contract is [config-protocol.md](../contracts/config-protocol.md). Protected LAN,
 mDNS, hotspot, account backend and relay remain unimplemented; the broader access
 paths below are not availability claims. Cues now remain paused for the full physical

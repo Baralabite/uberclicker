@@ -5,17 +5,22 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
+    "predev": "node scripts/schema.mjs",
     "dev": "vite --host 127.0.0.1",
+    "prebuild": "node scripts/schema.mjs",
     "build": "node scripts/notices.mjs && tsc --noEmit && vite build",
+    "pretest": "node scripts/schema.mjs",
     "test": "tsx --test tests/*.test.ts",
     "sync": "cap sync"
   },
   "dependencies": {
     "@aparajita/capacitor-secure-storage": "8.0.1",
-    "@capacitor-community/bluetooth-le": "8.3.0",
     "@capacitor/android": "8.6.0",
+    "@capacitor/app": "8.1.2",
     "@capacitor/core": "8.6.0",
+    "@capacitor/haptics": "8.0.2",
     "@capacitor/ios": "8.6.0",
+    "@tauri-apps/api": "2.12.4",
     "ajv": "8.20.0"
   },
   "devDependencies": {

@@ -12,7 +12,14 @@ fi
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 # Intentional flag splitting: pkg-config emits compiler arguments.
-c++ -std=c++17 -DARDUINOJSON_ENABLE_ARDUINO_STRING=1 -DARDUINOJSON_ENABLE_ARDUINO_STREAM=0 -DARDUINOJSON_ENABLE_PROGMEM=0 -DCONFIG_NIMBLE_ENABLED=1 -DUC_CONFIG_HOST_TEST=1 -Ifirmware/tests/config/stubs -Ifirmware/include -I"$json" firmware/src/config_service.cpp firmware/tests/config/service.cpp $ssl_flags -o "$work/service"
+c++ -std=c++17 -DARDUINOJSON_ENABLE_ARDUINO_STRING=1 -DARDUINOJSON_ENABLE_ARDUINO_STREAM=0 -DARDUINOJSON_ENABLE_PROGMEM=0 -DUC_CONFIG_HOST_TEST=1 -Ifirmware/tests/config/stubs -Ifirmware/include -I"$json" firmware/src/config_service.cpp firmware/tests/config/local_service.cpp $ssl_flags -o "$work/service"
 "$work/service"
+c++ -std=c++17 -Wall -Wextra -Werror -Ifirmware/include -I"$json" firmware/tests/actions_test.cpp firmware/src/output_codec.cpp firmware/src/socket_output.cpp -o "$work/actions"
+"$work/actions"
 c++ -std=c++17 firmware/tests/config/framing.cpp -o "$work/framing"
 "$work/framing"
+for role in tx rx; do
+  case "$role" in tx) role_flag=UBERCLICKER_ROLE_TX ;; rx) role_flag=UBERCLICKER_ROLE_RX ;; esac
+  c++ -std=c++17 -DARDUINOJSON_ENABLE_ARDUINO_STRING=1 -DARDUINOJSON_ENABLE_ARDUINO_STREAM=0 -DARDUINOJSON_ENABLE_PROGMEM=0 -DUC_CONFIG_HOST_TEST=1 -D"$role_flag" -Ifirmware/tests/config/stubs -Ifirmware/include -I"$json" firmware/src/config_service.cpp firmware/tests/config/role.cpp $ssl_flags -o "$work/role"
+  "$work/role" "$role"
+done

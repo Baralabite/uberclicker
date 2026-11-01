@@ -31,6 +31,7 @@ struct ReceiverLink {
   bool paired = false, fresh = false, signalValid = false;
   ReceiverState state = ReceiverState::Unknown;
   int16_t rssiDbm = 0;
+  uint32_t lastSeenSeconds = 0;
   char deviceId[33] = {}, name[33] = {};
 };
 struct ReceiverSummary {
@@ -40,13 +41,15 @@ struct ReceiverSummary {
   uint8_t averageBars = 0;
 };
 enum class Action : uint8_t {
-  None, Previous, Next, CycleProfile, OpenSetup, CloseSetup, OpenPairing, FactoryReset, OpenUpdates, CloseUpdates, CheckUpdate, InstallUpdate
+  None, SelectPrevious, SelectNext, Previous, Next, CycleProfile, OpenSetup, CloseSetup, OpenPairing, FactoryReset, OpenUpdates, CloseUpdates, CheckUpdate, InstallUpdate
 };
 enum class View : uint8_t { Home, Menu, Device, Setup, ResetChoice, ResetArmed, Updates, Receivers };
 struct Snapshot {
   Role role = Role::Tx;
   Route route = Route::LoRa;
   Battery battery = Battery::Unknown;
+  int8_t batteryPercent = -1;
+  bool wifiConnected = false;
   Outcome outcome = Outcome::None;
   Setup setup = Setup::None;
   ota_update::Status update;
@@ -58,14 +61,15 @@ struct Snapshot {
   bool paused = false;
   bool recoveryRequired = false; // ConfigStatus: no claim/config until physical reset
   bool paired = false;
-  char profile[33] = "Presenter";
+  char deviceName[33] = {};
+  char cloudCode[9] = {};
   char previous[33] = "Previous";
   char next[33] = "Next";
   char output[33] = "BLE keyboard";
   char lastAction[33] = "";
-  char deviceName[33] = "UberClicker";
-  // Core supplies real claim/setup text; never put invented credentials here.
-  char setupLine1[33] = "Open UberClicker app";
+  char bluetoothName[41] = "UberClicker";
+  // Core supplies real output-host pairing or serial edit text.
+  char setupLine1[33] = "Pair in computer Bluetooth";
   char setupLine2[33] = "";
 };
 ReceiverSummary summarizeReceivers(const Snapshot &snapshot);
@@ -95,7 +99,8 @@ class Controller {
   uint32_t holdStart_ = 0;
 };
 // Hardware adapter owns one FreeRTOS display task and a length-one overwrite
-// queue. submit never waits for the ~2 s panel refresh; identical frames skipped.
+// queue. submit never waits for the panel; identical frames skipped, changed
+// byte bounds partially refreshed after the initial full refresh.
 // beginDisplay returns false on allocation failure; core must remain usable.
 bool beginDisplay();
 void submitDisplay(const Frame &frame);

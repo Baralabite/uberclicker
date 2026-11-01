@@ -23,7 +23,8 @@
     "settingsSchemaVersion": {
       "enum": [
         1,
-        2
+        2,
+        4
       ]
     },
     "configProtocolVersion": {
@@ -130,7 +131,10 @@
       "const": false
     },
     "bleFramingVersion": {
-      "const": 1
+      "enum": [
+        0,
+        1
+      ]
     },
     "remoteConfigRadioVersion": {
       "enum": [
@@ -146,14 +150,27 @@
         [
           1,
           2
+        ],
+        [
+          1,
+          2,
+          3,
+          4
         ]
       ]
     },
     "settingsMigration": {
       "enum": [
         "none",
-        "atomic-on-apply-v1-to-v2"
+        "atomic-on-apply-v1-to-v2",
+        "atomic-on-apply-v1-v3-to-v4"
       ]
+    },
+    "configTransport": {
+      "const": "usb_serial"
+    },
+    "radioMode": {
+      "const": "broadcast"
     }
   },
   "required": [
@@ -208,8 +225,17 @@
             "const": 1
           }
         }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "settingsSchemaVersion": {
+            "const": 1
+          }
+        }
       },
-      "else": {
+      "then": {
         "properties": {
           "configProtocolVersion": {
             "const": 1
@@ -224,6 +250,57 @@
           },
           "settingsMigration": {
             "const": "none"
+          },
+          "bleFramingVersion": {
+            "const": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "settingsSchemaVersion": {
+            "const": 4
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "configProtocolVersion",
+          "configTransport",
+          "radioMode",
+          "bleFramingVersion",
+          "remoteConfigRadioVersion",
+          "preserveSettingsSchemas",
+          "settingsMigration"
+        ],
+        "properties": {
+          "configProtocolVersion": {
+            "const": 2
+          },
+          "configTransport": {
+            "const": "usb_serial"
+          },
+          "radioMode": {
+            "const": "broadcast"
+          },
+          "bleFramingVersion": {
+            "const": 0
+          },
+          "remoteConfigRadioVersion": {
+            "const": 0
+          },
+          "preserveSettingsSchemas": {
+            "const": [
+              1,
+              2,
+              3,
+              4
+            ]
+          },
+          "settingsMigration": {
+            "const": "atomic-on-apply-v1-v3-to-v4"
           }
         }
       }

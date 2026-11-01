@@ -1,13 +1,49 @@
+> Current implementation: TX and RX configuration is USB serial only. No BLE configuration GATT service or characteristics are registered; Bluetooth remains available for keyboard/MIDI output. Status reports `ble_config:false` and `serial_config:true`. Serial accepts `UC:` followed by a protocol-v2 JSON request and newline at 115200 baud, returning the same prefix plus a JSON response. Serial requests are trusted without a screen code, saved credentials or a physical setup window. Connecting USB and reading settings does not pause cues, disconnect BLE or open Bluetooth pairing; only an active settings edit pauses cues, with Apply/Cancel resuming output. Legacy `code`, `claim`, `authorize`, and remote `receiver` requests are rejected. Configuration uses schema v4 (multiple Wi-Fi networks and per-button action lists) with the existing protocol-v2 validation/apply operations; legacy peers are retained only for settings migration and are not used by broadcast radio. Historical BLE/remote/owner-token sections below do not apply to this implementation.
+
 # UberClicker configuration protocol 2
 
 Development contract; unreleased. The 120-second progress lease and durable Apply
 receipt policy implement the focused review corrections; hardware acceptance is
 still required.
 
-Schema version 2, logical protocol 2; firmware version/revision remain independent.
+Schema version 4, logical protocol 2; firmware version/revision remain independent.
 BLE UUIDs and fragment header version 1 are unchanged from the first development
 implementation. Protocol-1 apps must reject v2 status instead of overwriting it.
 Normative model: `config.schema.json`; integration: `firmware/include/config_service.h`.
+
+## Schema 4 action lists
+
+Profiles are `{name,previous:Action[],next:Action[]}`. Each event accepts 0–8 actions.
+An action has `{type,enabled,host,port,key,modifiers,midi,osc,payload}`; types are
+`lora`, `ble_keyboard`, `ble_midi`, `osc_udp`, `udp`, `tcp`, `cloud`. Existing mapping
+bounds apply. Each network action owns its endpoint, so duplicate OSC actions can
+address different hosts/ports. Cloud retains its fixed HTTPS endpoint and sends
+button events through the cloud relay. LoRa sends only from TX. There is no global `route` or profile
+`output`/endpoint in schema 4. Disabled actions remain stored but are not executed.
+
+Cloud-capable firmware reports `capabilities.cloud_output:true` and a separate
+status field `cloud:{room,configured}`. A trusted local serial request
+`{v:2,id,op:"cloud",room,token}` provisions a TX with a 32-lowercase-hex room and
+64-lowercase-hex publisher token; both empty strings clear it. It rejects an open
+settings edit, invalid credentials and RX roles. The operation atomically saves
+the existing settings and cloud credential with a new revision. It never echoes
+the token and must not be retried automatically after an uncertain response.
+Normal Apply preserves it. Factory reset clears it. These write-only credentials
+are outside the readable schema-4 config; existing records without them migrate
+without changing the public schema. See [Cloud protocol](../docs/cloud.md).
+
+Schema 1–3 records migrate through the existing topology/Wi-Fi migration, then
+convert each old mapping to a one-action list. TX receives a LoRa action before
+its local action; the old `lora` route keeps that local action disabled and `direct`
+keeps it enabled. RX keeps its local action enabled. Names, destinations, mapping
+values, revision and secrets are preserved. Migration is in memory until Apply
+(or the existing atomic role-change save); the original NVS slot is retained.
+Clients must require schema 4; older firmware must be updated before using this app.
+
+Actions execute in order, with one event in flight and a 750 ms event expiry.
+Network jobs inherit the event’s timestamp. Pause, profile changes and reconnect
+invalidate remaining work. Errors allow later actions within that budget; mixed
+success/failure reports Unknown. Total stored settings/secrets still fit 8192 bytes.
 
 ## Topology and authority
 
@@ -128,12 +164,24 @@ The app discards its draft on disconnect. No offline configuration queue exists.
 
 ## Secrets, persistence and uncertain outcomes
 
-Secrets are `{wifi:{op:...},pairs:[{deviceId,op:...,value?:...}]}`. Wi-Fi ops are
+Readable Wi-Fi settings are an ordered `wifi:[{ssid,configured}]` list.
+Secrets are `{wifi:[{ssid,op:...,value?:...}],pairs:[{deviceId,op:...,value?:...}]}`. Wi-Fi ops are
 explicit keep/clear/replace (8..63 UTF-8 bytes on replace); pair replace is exactly
 64 lowercase hex. Every configured peer needs a key. Removed peer keys must be
 explicitly cleared; unknown/duplicate operations and orphan keys fail validation.
-Remote pair secret operations permit keep only. Empty SSID requires no password;
-`wifi.configured` must match secret presence. Names/SSID/payloads are byte bounded.
+Remote pair secret operations permit keep only. Every network needs a unique,
+nonempty SSID of 1..32 UTF-8 bytes and exactly one secret operation in the same
+order. Keep resolves the password by SSID and requires an existing saved network;
+renaming requires replace or clear. Clear permits an open network. Each entry's
+`configured` must match password presence. Removing a network removes its secret.
+An empty list disables joining. Passwords never appear in readable settings.
+There is no fixed network-count limit: requests and complete persisted records
+(including secrets and integrity metadata) must fit 8192 bytes; validation rejects
+oversized records with TOO_LARGE before committing. NVS write failures retain the
+previous settings. Names/SSID/payloads are byte bounded.
+The firmware tries networks in list order, allowing 15 seconds per attempt,
+cycling until connected. It keeps a working connection and starts from the first
+entry after disconnecting or applying settings. Joining runs outside the cue loop.
 Profiles ≤4; active indexes must exist; network outputs need host/port. OSC has one
 int32 argument; raw TCP appends LF. Native USB is unavailable until verified.
 
@@ -147,7 +195,7 @@ Uncertain readback locks output/configuration until recovery; reboot can resolve
 the atomically saved Apply receipt rather than replaying Apply.
 Readback must verify a write before publishing RAM state. Torn writes retain prior
 valid revision. Schema-1 single-peer records migrate in RAM to peers[0]/activePeer0
-with the same cue key, owner, Wi-Fi and revision but adminAuthorized:false; the next Apply writes v2 atomically,
+with the same cue key, owner, Wi-Fi and revision but adminAuthorized:false; schema-1/2 Wi-Fi credentials migrate into a single schema-3 list entry (or an empty list for an empty SSID). The next Apply writes the current schema atomically,
 so power interruption never erases the old complete record. No migration guesses
 new keys, shares keys across receivers, or silently erases unknown schemas.
 Unsupported persisted schemas (or no valid record despite stored data) set

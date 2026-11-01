@@ -3,6 +3,7 @@ const config: CapacitorConfig = {
   appId: "com.uberclicker.app",
   appName: "UberClicker",
   webDir: "dist",
-  ios: { contentInset: "automatic" },
+  ios: { contentInset: "never" },
+  plugins: { SystemBars: { insetsHandling: "css", style: "LIGHT" } },
 };
 export default config;

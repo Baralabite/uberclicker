@@ -36,11 +36,12 @@ public:
 };
 class BLEService {
 public:
+  inline static bool startSucceeds = true;
   std::map<std::string, BLECharacteristic *> characteristics;
   BLECharacteristic *createCharacteristic(const char *s, unsigned) {
     return characteristics[s] = new BLECharacteristic;
   }
-  void start() {}
+  bool start() { return startSucceeds; }
 };
 class BLEServer {
 public:

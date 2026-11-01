@@ -89,7 +89,7 @@ jobs:
 
           Use the browser installer at https://uberclicker.com/flash/ after the website mirror deployment completes. Select Experimental prereleases. USB programming uses CH340 serial; native USB keyboard/MIDI is unverified. Preserve mode requires an identical partition layout; full erase destroys settings and credentials.
 
-          Opt-in OTA: after a one-time USB installation of the two-slot layout, authorize the local BLE app in physical setup and choose Open update screen with Wi-Fi configured. Use the clicker buttons to Check, review the experimental version, then Install. GitHub Pages publishes the compatible OTA feed after mirroring.
+          Opt-in OTA: after a one-time USB installation of the two-slot layout, connect by USB serial and choose Firmware update with Wi-Fi configured. Use the clicker buttons to Check, review the experimental version, then Install. Only releases matching the installed settings schema and protocol are offered over OTA; update TX and RX together for the broadcast-radio firmware.
 
           Exact build-derived offsets, source commit, sizes and SHA-256 hashes are in manifest.json. Recovery: https://github.com/Baralabite/uberclicker/blob/main/docs/flashing.md
 

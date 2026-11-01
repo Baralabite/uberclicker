@@ -99,6 +99,7 @@ if __name__ == "__main__":
         ("screw-exceeds-ten-mm", ["screw_l=12"], False),
         ("eight-mm-insert-small-plug-unreachable", ["insert_l=8", "plug_d=5"], False),
         ("invalid-bay-count", ["bays=3"], False),
+        ("pocket-enters-screen-bulge", ["pocket_depth=22"], False),
         ("oversized-corner-radius", ["corner_r=20"], False),
         ("plug-body-too-tall", ["plug_body_h=40"], False)]:
         command = [OPENSCAD,"--hardwarnings","-D",'part="dock"']

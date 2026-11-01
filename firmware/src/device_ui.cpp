@@ -29,6 +29,44 @@ void text(Frame &f, const char *s, int x, int y, int scale = 1, int width = 176,
       if (kGlyphs[glyph][row] & (16 >> col)) rect(f, x+i*6*scale+col*scale, y+row*scale, scale, scale, ink);
   }
 }
+void renderDeviceName(Frame &f, const char *deviceName, int height = 144, int top = 44) {
+  char name[33];size_t length=0;
+  while(length<32&&deviceName[length])++length;
+  memcpy(name,deviceName,length);name[length]=0;
+  const char *lines[16];unsigned lengths[16],count=0,longest=0;
+  for(unsigned i=0;i<length;) {
+    while(i<length&&name[i]==' ')++i;
+    if(i==length)break;
+    unsigned start=i;
+    while(i<length&&name[i]!=' ')++i;
+    unsigned n=i-start;
+    lines[count]=name+start;lengths[count++]=n;
+    if(n>longest)longest=n;
+    if(i<length)name[i++]=0;
+  }
+  if(!count){lines[0]="Device";lengths[0]=longest=6;count=1;}
+  char wrapped[16][33];unsigned lineCount=0;
+  int scale=176/(6*longest-1);
+  if(scale<1)scale=1;
+  for(;;--scale) {
+    memset(wrapped,0,sizeof(wrapped));lineCount=0;
+    for(unsigned i=0;i<count;++i) {
+      unsigned used=lineCount?strlen(wrapped[lineCount-1]):0;
+      if(used&&(6*(used+1+lengths[i])-1)*scale<=176) {
+        wrapped[lineCount-1][used]=' ';
+        memcpy(wrapped[lineCount-1]+used+1,lines[i],lengths[i]);
+      } else memcpy(wrapped[lineCount++],lines[i],lengths[i]);
+    }
+    if((9*lineCount-2)*scale<=unsigned(height)||scale==1)break;
+  }
+  int y=top+(height-int(9*lineCount-2)*scale)/2;
+  for(unsigned i=0;i<lineCount;++i) {
+    int cells=(176+scale)/(6*scale),length=strlen(wrapped[i]);
+    int width=(6*(length<cells?length:cells)-1)*scale;
+    text(f,wrapped[i],(200-width)/2,y,scale,cells*6*scale);
+    y+=9*scale;
+  }
+}
 uint8_t receiverMask(const Snapshot &s) {
   uint8_t mask=0;
   if (!s.receiverRosterKnown) return mask;
@@ -41,13 +79,44 @@ uint8_t receiverMask(const Snapshot &s) {
   return mask;
 }
 unsigned signalBars(int16_t dbm) { return dbm<=-115 ? 1 : dbm<=-100 ? 2 : dbm<=-85 ? 3 : 4; }
-void bars(Frame &f, int x, int y, unsigned count) {
-  for (unsigned i=0;i<count && i<4;++i) rect(f,x+i*5,y+9-int(i)*3,3,3+int(i)*3);
+
+enum class ModeIcon { Bluetooth, Wifi, Keyboard, Midi, Osc, Udp, Tcp };
+void modeIcon(Frame &f, ModeIcon mode, int x, bool connected=true) {
+  static const uint16_t pixels[][12]={
+    {0x040,0x060,0x050,0x248,0x150,0x0e0,0x0e0,0x150,0x248,0x050,0x060,0x040},
+    {0,0x3fc,0xc03,0x801,0,0x1f8,0x204,0,0x0f0,0,0x060,0x060},
+    {0,0xfff,0x801,0xd55,0x801,0xaaa,0x801,0x9f9,0x801,0xfff,0,0},
+    {0x1f8,0x606,0x801,0x801,0xa05,0x891,0x861,0x801,0x801,0x606,0x1f8,0},
+    {0,0,0x180,0x240,0x420,0x801,0x801,0x012,0x00c,0,0,0},
+    {0,0xf80,0x880,0x890,0x898,0x8fc,0x898,0x890,0x880,0xf80,0,0},
+    {0,0x3c0,0x420,0x420,0x5e0,0x492,0x492,0x07a,0x042,0x042,0x03c,0}
+  };
+  for(unsigned y=0;y<12;++y)for(unsigned col=0;col<12;++col)
+    if(pixels[unsigned(mode)][y]&(0x800>>col))rect(f,x+col,16+y,1,1);
+  if(!connected)for(int i=0;i<12;++i)rect(f,x+i,27-i,1,1);
 }
-void battery(Frame &f, Battery value) {
-  rect(f,164,12,22,12); rect(f,186,15,2,6); rect(f,166,14,18,8,false);
-  if (value == Battery::Unknown) text(f,"?",172,15,1,6);
-  else for (unsigned i=0;i<(unsigned)value && i<3;++i) rect(f,167+i*5,15,4,6);
+void statusBar(Frame &f, const Snapshot &s) {
+  bool local=s.role==Role::Rx||s.route==Route::Direct;
+  bool keyboard=!strcmp(s.output,"ble_keyboard")||!strcmp(s.output,"BLE keyboard");
+  bool midi=!strcmp(s.output,"ble_midi"),osc=!strcmp(s.output,"osc_udp");
+  bool udp=!strcmp(s.output,"udp"),tcp=!strcmp(s.output,"tcp");
+  bool network=osc||udp||tcp;
+  char percent[6];
+  if(s.batteryPercent>=0&&s.batteryPercent<=100)snprintf(percent,sizeof(percent),"%d%%",s.batteryPercent);
+  else strcpy(percent,"--%");
+  text(f,percent,188-int(strlen(percent))*6,20,1,24);
+  int x=146;
+  if(local&&(keyboard||midi||network)) {
+    modeIcon(f,keyboard?ModeIcon::Keyboard:midi?ModeIcon::Midi:osc?ModeIcon::Osc:udp?ModeIcon::Udp:ModeIcon::Tcp,x);x-=16;
+  }
+  if(local&&(keyboard||midi)){modeIcon(f,ModeIcon::Bluetooth,x);x-=16;}
+  if((local&&network)||s.wifiConnected){modeIcon(f,ModeIcon::Wifi,x,s.wifiConnected);x-=16;}
+  unsigned bars=s.role==Role::Tx?4:0;
+  if(s.role==Role::Rx)for(const auto &p:s.receivers)
+    if(p.paired&&p.fresh&&p.signalValid&&!strcmp(p.deviceId,s.cueReceiverId)&&p.rssiDbm>=-160&&p.rssiDbm<=0)bars=signalBars(p.rssiDbm);
+  for(unsigned i=0;i<4;++i){int height=3+2*i;rect(f,x+3*i,27-(i<bars?height:1),2,i<bars?height:1);}
+  text(f,s.recoveryRequired?"DEVICE":s.deviceName,12,20,1,x-18);
+  rect(f,12,34,176,1);
 }
 void footer(Frame &f, const char *a, const char *b) {
   rect(f,12,166,176,1); text(f,a,12,175); text(f,b,12,188);
@@ -138,7 +207,7 @@ Action Controller::gesture(unsigned b) {
     unsigned chosen=selection_; selection_=0;
     if (snapshot_.role == Role::Tx) {
       if (chosen==0) { view_=View::Receivers; return Action::None; }
-      if (chosen==1) { view_=View::Setup; return Action::OpenPairing; }
+      if (chosen==1) { view_=View::Setup; return Action::OpenSetup; }
       view_=View::ResetChoice;
     } else {
       if (chosen==0) { view_=View::Setup; return Action::OpenSetup; }
@@ -146,7 +215,8 @@ Action Controller::gesture(unsigned b) {
     }
     return Action::None;
   }
-  if (cuesPaused() || snapshot_.role == Role::Rx) return Action::None;
+  if (cuesPaused()) return Action::None;
+  if (snapshot_.role == Role::Rx) return summarizeReceivers(snapshot_).paired ? (b == 0 ? Action::SelectPrevious : Action::SelectNext) : Action::None;
   return b == 0 ? Action::Previous : Action::Next;
 }
 Action Controller::poll(bool b1, bool b2, uint32_t now) {
@@ -187,11 +257,7 @@ Action Controller::poll(bool b1, bool b2, uint32_t now) {
 }
 void Controller::render(Frame &f) const {
   memset(f.pixels,0,sizeof(f.pixels));
-  text(f,snapshot_.recoveryRequired ? "DEVICE" : snapshot_.role == Role::Rx ? "LORA RX" : snapshot_.route == Route::LoRa ? "LORA TX" : "DIRECT TX",12,14);
-  rect(f,164,12,22,12); rect(f,186,15,2,6); rect(f,166,14,18,8,false);
-  if (snapshot_.battery == Battery::Unknown) text(f,"?",172,15,1,6);
-  else for (unsigned i=0;i<(unsigned)snapshot_.battery;++i) rect(f,167+i*5,15,4,6);
-  rect(f,12,32,176,1);
+  statusBar(f,snapshot_);
   if (view_ == View::Updates) {
     using ota_update::State;
     auto &update = snapshot_.update;
@@ -215,33 +281,14 @@ void Controller::render(Frame &f) const {
   }
   if (view_ == View::Menu || view_ == View::Device) {
     title(f,"Menu");
-    const char *txMenu[]={"Receiver status","Pair new RX","Factory reset"};
-    const char *rxMenu[]={"App setup","Factory reset","Back"};
+    const char *txMenu[]={"Radio status","Bluetooth pairing","Factory reset"};
+    const char *rxMenu[]={"Bluetooth pairing","Factory reset","Back"};
     for (unsigned i=0;i<3;++i) row(f,snapshot_.role==Role::Tx ? txMenu[i] : rxMenu[i],i,selection_);
     footer(f,"B1 MOVE  B2 SELECT","BOTH: HOME / CUES PAUSED"); return;
   }
   if (view_ == View::Receivers) {
-    auto summary=summarizeReceivers(snapshot_); title(f,"Receivers");
-    unsigned pages=(summary.paired+2)/3; if (!pages) pages=1;
-    unsigned page=selection_%pages; char label[12]; snprintf(label,sizeof(label),"%u/%u",page+1,pages); text(f,label,166,49,1,22);
-    if (!summary.rosterKnown) { text(f,"PAIR LIST UNKNOWN",12,91); text(f,"NO LIVE STATUS AVAILABLE",12,114); }
-    else if (!summary.paired) { text(f,"NO PAIRED RECEIVERS",12,91); text(f,"PAIR NEW RX IN MENU",12,114); }
-    else {
-      uint8_t mask=receiverMask(snapshot_); unsigned item=0;
-      for (unsigned i=0;i<8;++i) if (mask & (1u<<i)) {
-        if (item/3==page) {
-          const auto &peer=snapshot_.receivers[i]; int y=78+int(item%3)*33;
-          bool online=summary.monitoring && peer.state==ReceiverState::Connected && peer.fresh;
-          bool signal=online && peer.signalValid && peer.rssiDbm>=-160 && peer.rssiDbm<=0;
-          text(f,peer.name[0] ? peer.name : "RECEIVER",12,y,1,140); text(f,peer.deviceId,12,y+12,1,96);
-          if (signal) { bars(f,166,y-2,signalBars(peer.rssiDbm)); snprintf(label,sizeof(label),"%d DBM",int(peer.rssiDbm)); }
-          else { text(f,summary.monitoring && peer.state==ReceiverState::Offline ? "X" : "?",176,y); strcpy(label,online ? "SIG UNKNOWN" : summary.monitoring && peer.state==ReceiverState::Offline ? "OFFLINE" : "UNKNOWN"); }
-          text(f,label,114,y+12,1,74);
-        }
-        ++item;
-      }
-    }
-    footer(f,"B1 NEXT PAGE  B2 BACK","BOTH: HOME / CUES PAUSED"); return;
+    title(f,"Radio broadcast");text(f,"TX SENDS ONLY",12,85);text(f,"SELECT THIS TX ON RX",12,110);
+    footer(f,"NO RECEIVER REPLIES","B2 BACK / BOTH HOME");return;
   }
   if (view_ == View::ResetChoice || view_ == View::ResetArmed) {
     title(f,"Factory reset?"); text(f,"WI-FI, BONDS, KEYS,",12,78); text(f,"PROFILES AND APP ACCESS",12,94);
@@ -304,47 +351,48 @@ void Controller::render(Frame &f) const {
     return;
   }
   if (view_ == View::Setup || snapshot_.setup != Setup::None || snapshot_.paused) {
-    title(f,snapshot_.setup == Setup::Claim ? "Claim device" : snapshot_.setup == Setup::Pairing ? "Pair devices" : snapshot_.setup == Setup::Editing ? "Configuring" : "App setup");
-    text(f,snapshot_.deviceName,12,78); text(f,snapshot_.setupLine1,12,101);
+    title(f,snapshot_.setup == Setup::Claim ? "Claim device" : snapshot_.setup == Setup::Pairing ? "Pair Bluetooth" : snapshot_.setup == Setup::Editing ? "Configuring" : "USB setup");
+    text(f,snapshot_.bluetoothName,12,78); text(f,snapshot_.setupLine1,12,101);
     unsigned codeLength=0; while(codeLength<32 && snapshot_.setupLine2[codeLength]) ++codeLength;
     text(f,snapshot_.setupLine2,12,119,codeLength>0 && codeLength<=9 ? 3 : 1);
     text(f,"CUES PAUSED",12,145,2); footer(f,"EITHER BUTTON: EXIT","NO OUTPUT WHILE EDITING"); return;
   }
-  const char *status = "NO ACKNOWLEDGEMENT YET", *detail = snapshot_.paired ? "NO LINK HEARTBEAT" : "PAIR IN APP SETUP";
-  switch (snapshot_.outcome) {
-    case Outcome::Pending: status=snapshot_.route == Route::Direct ? "OUTPUT PENDING" : "AWAITING RECEIPT"; detail="OUTCOME STILL UNKNOWN"; break;
-    case Outcome::Received: status="LAST CUE RECEIVED"; detail="APPLICATION UNVERIFIED"; break;
-    case Outcome::Submitted: status="LAST OUTPUT SUBMITTED"; detail="APPLICATION UNVERIFIED"; break;
-    case Outcome::Sent: status="LAST COMMAND SENT"; detail="DELIVERY UNVERIFIED"; break;
-    case Outcome::Rejected: status="LAST CUE REJECTED"; detail="CHECK OUTPUT / SETUP"; break;
-    case Outcome::Unknown: status="UNCONFIRMED"; detail="DELIVERY IS UNKNOWN"; break;
-    case Outcome::None: break;
+  if (snapshot_.role == Role::Tx && snapshot_.cloudCode[0]) {
+    title(f,"Link account");text(f,snapshot_.cloudCode,28,83,3,150);
+    text(f,"APP.UBERCLICKER.COM",12,123);text(f,"PORTAL: CUE REMOTE > ADD",12,143);
+    footer(f,"CODE EXPIRES IN 10 MIN","BOTH: MENU");return;
   }
-  if (snapshot_.role == Role::Rx && snapshot_.outcome == Outcome::None) status="NO RECENT CUE";
-  if (snapshot_.route == Route::Direct && snapshot_.role == Role::Tx && snapshot_.outcome == Outcome::None) { status="LOCAL INPUT READY"; detail="OUTPUT NOT YET VERIFIED"; }
-  if (snapshot_.battery == Battery::Low) detail="BATTERY LOW - RECHARGE";
-  const char *primary = snapshot_.lastAction[0] ? snapshot_.lastAction : snapshot_.profile;
   if (snapshot_.role == Role::Rx) {
-    text(f,status,12,50); text(f,detail,12,69); rect(f,12,89,176,1);
-    text(f,primary,12,105,2); text(f,snapshot_.output,12,135);
-    footer(f,"B1 / B2: LOCAL STATUS","BOTH: MENU");
-  } else {
-    memset(f.pixels,0,sizeof(f.pixels)); auto summary=summarizeReceivers(snapshot_); char count[24];
-    if (summary.hasAverage) bars(f,12,12,summary.averageBars); else text(f,"?",18,15);
-    text(f,"AVG",36,15); battery(f,snapshot_.battery);
-    if (!summary.rosterKnown) strcpy(count,"?/? RX");
-    else if (!summary.monitoring && summary.paired) snprintf(count,sizeof(count),"?/%u RX",unsigned(summary.paired));
-    else snprintf(count,sizeof(count),"%u/%u RX",unsigned(summary.connected),unsigned(summary.paired));
-    text(f,count,76,15,1,78);
-    if (!summary.rosterKnown) text(f,"LINK STATUS UNKNOWN",12,34);
-    else if (!summary.paired) text(f,"NO PAIRED RX",12,34);
-    else if (summary.offline || summary.unknown) {
-      const char *condition=summary.offline && summary.unknown ? "MISSING" : summary.offline ? "OFFLINE" : "UNKNOWN";
-      snprintf(count,sizeof(count),"%u RX %s",unsigned(summary.offline+summary.unknown),condition);
-      rect(f,10,31,180,13); text(f,count,15,34,1,170,false);
+    unsigned count=0,selected=0,single=0;
+    for(unsigned i=0;i<8;++i) if(snapshot_.receivers[i].paired&&snapshot_.receivers[i].fresh) {
+      if(!strcmp(snapshot_.receivers[i].deviceId,snapshot_.cueReceiverId))selected=count;
+      single=i;
+      ++count;
     }
-    text(f,"TX",28,67,13,176);
-
+    if(count==1) {
+      const auto &p=snapshot_.receivers[single];
+      text(f,"Receiving:",40,46,2);
+      text(f,"Receiving:",41,46,2);
+      renderDeviceName(f,p.name[0]?p.name:"Transmitter",102,70);
+      char seen[32];snprintf(seen,sizeof(seen),"Last Seen: %lus",(unsigned long)p.lastSeenSeconds);
+      text(f,seen,(200-int(strlen(seen)*6-1))/2,180);
+      return;
+    }
+    unsigned page=selected/5,item=0;
+    for(unsigned i=0;i<8;++i) {const auto &p=snapshot_.receivers[i];if(!p.paired||!p.fresh)continue;
+      if(item/5==page){int y=44+(item%5)*30;bool chosen=!strcmp(p.deviceId,snapshot_.cueReceiverId);
+        if(chosen)rect(f,10,y-3,180,26);
+        text(f,p.name[0]?p.name:"Transmitter",14,y,1,172,!chosen);
+        char seen[32];snprintf(seen,sizeof(seen),"Last Seen: %lus",(unsigned long)p.lastSeenSeconds);
+        text(f,seen,14,y+12,1,172,!chosen);}
+      ++item;
+    }
+    if(!count) {
+      text(f,"Waiting for",10,72,2,180);
+      text(f,"Transmitters...",10,96,2,180);
+    }
+  } else {
+    renderDeviceName(f,snapshot_.deviceName);
   }
 }
 } // namespace device_ui
@@ -368,16 +416,33 @@ void displayTask(void *) {
   bool first=true; uint32_t lastStart=0;
   for (;;) {
     if (xQueueReceive(frames,&frame,portMAX_DELAY) != pdPASS) continue;
+    unsigned left=Frame::Width/8, right=0, top=Frame::Height, bottom=0;
     if (!first) {
       uint32_t elapsed=uint32_t(millis()-lastStart);
       if (elapsed<2500) vTaskDelay(pdMS_TO_TICKS(2500-elapsed));
       // Replace any obsolete frame accumulated during the slow panel refresh.
       xQueueReceive(frames,&frame,0);
-      if (!memcmp(frame.pixels,previous.pixels,Frame::Bytes)) continue;
+      // Compare with the frame actually displayed, after coalescing queued work.
+      for (unsigned y=0;y<Frame::Height;++y) for (unsigned x=0;x<Frame::Width/8;++x) {
+        unsigned i=y*(Frame::Width/8)+x;
+        if (frame.pixels[i]==previous.pixels[i]) continue;
+        if (x<left) left=x;
+        if (x>=right) right=x+1;
+        if (y<top) top=y;
+        if (y>=bottom) bottom=y+1;
+      }
+      if (!right) continue;
     }
     lastStart=millis(); panel.fillScreen(GxEPD_WHITE);
     panel.drawBitmap(0,0,frame.pixels,200,200,GxEPD_BLACK);
-    panel.display(false); previous=frame; first=false; ++refreshes;
+    if (first) panel.display(false);
+    else {
+      panel.displayWindow(left*8,top,(right-left)*8,bottom-top);
+      panel.powerOff(); // displayWindow leaves panel driving voltages enabled.
+    }
+    previous=frame;
+    if(first)Serial.println("E-paper first refresh returned");
+    first=false; ++refreshes;
   }
 }
 }

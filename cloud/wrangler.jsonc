@@ -1,0 +1,106 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "uberclicker-cloud",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-30",
+  "account_id": "ecb7d7f0a38ffceb8ad7f96c022b43f2",
+  "workers_dev": true,
+  "routes": [
+    {
+      "pattern": "api.uberclicker.com",
+      "custom_domain": true
+    },
+    {
+      "pattern": "app.uberclicker.com",
+      "custom_domain": true
+    }
+  ],
+  "assets": {
+    "directory": "../app/dist",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "not_found_handling": "single-page-application"
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "ROOMS",
+        "class_name": "ClickRoom"
+      },
+      {
+        "name": "BILLING",
+        "class_name": "BillingAccount"
+      },
+      {
+        "name": "CLICKERS",
+        "class_name": "CloudClicker"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "ClickRoom"
+      ]
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": [
+        "BillingAccount"
+      ]
+    },
+    {
+      "tag": "v3",
+      "new_sqlite_classes": [
+        "CloudClicker"
+      ]
+    }
+  ],
+  "ratelimits": [
+    {
+      "name": "CREATE_LIMIT",
+      "namespace_id": "1001",
+      "simple": {
+        "limit": 5,
+        "period": 60
+      }
+    },
+    {
+      "name": "AUTH_LIMIT",
+      "namespace_id": "1002",
+      "simple": {
+        "limit": 20,
+        "period": 60
+      }
+    }
+  ],
+  "observability": {
+    "enabled": false
+  },
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "uberclicker-accounts",
+      "database_id": "b9f54d5b-e3b4-4895-80f0-a14e03a16ed7",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "send_email": [
+    {
+      "name": "EMAIL"
+    }
+  ],
+  "vars": {
+    "APP_ORIGIN": "https://app.uberclicker.com",
+    "EMAIL_ENABLED": "true",
+    "STRIPE_MONTHLY_PRICE": "price_1UWwBBHFbpUgloJtvT9YrsBV",
+    "STRIPE_YEARLY_PRICE": "price_1UWwFZHFbpUgloJtYj7UHryO"
+  },
+  "limits": {
+    "cpu_ms": 30000
+  }
+}

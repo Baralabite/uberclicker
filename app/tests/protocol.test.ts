@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import Ajv2020 from "ajv/dist/2020.js";
 import {
+  checkedConfig,
   encodeFrames,
   Reassembler,
   DeviceSession,
@@ -28,6 +29,32 @@ test("shared readable fixture validates and contains no secrets", () => {
   const bad = structuredClone(fixture);
   (bad as any).password = "private";
   assert.equal(validate(bad), false);
+});
+test("Cloud settings preserve the HTTPS root and reject other endpoints", async () => {
+  const { checkedConfig } = await import("../src/protocol");
+  const config = structuredClone(fixture);
+  const profile = config.profiles[0].next[0];
+  profile.type = "cloud";
+  profile.host = "api.uberclicker.com";
+  profile.port = 443;
+  assert.equal(checkedConfig(JSON.parse(JSON.stringify(config))).profiles[0].next[0].host, "api.uberclicker.com");
+  profile.port = 80;
+  assert.throws(() => checkedConfig(config), /Cloud root URL/);
+  profile.port = 443;
+  profile.host = "other.example.com";
+  assert.throws(() => checkedConfig(config), /Cloud root URL/);
+});
+test("Cloud pairing accepts only the sender capability and never retries an uncertain save", async () => {
+  const { parseCloudPairing } = await import("../src/protocol");
+  const code = JSON.stringify({ v: 1, room: "a".repeat(32), token: "b".repeat(64) });
+  assert.deepEqual(parseCloudPairing(code), { room: "a".repeat(32), token: "b".repeat(64) });
+  for (const invalid of ["bad", "null", JSON.stringify({v:1,room:"a",token:"b"}), JSON.stringify({v:1,room:"a".repeat(32),token:"b".repeat(64),clientToken:"private"})]) assert.throws(() => parseCloudPairing(invalid));
+  let saves = 0;
+  const d = new DeviceSession({ request: async op => { if (op === "cloud") { saves++; throw Error("uncertain"); } return {}; }, disconnect: async () => {} });
+  d.config = structuredClone(fixture);
+  d.status = { capabilities: { serial_config: true, cloud_output: true } } as any;
+  await assert.rejects(d.configureCloud(code), /uncertain/);
+  assert.equal(saves, 1); assert.equal(d.config, undefined);
 });
 test("cross-language frame fixture is byte exact", () => {
   const vector = JSON.parse(
@@ -107,7 +134,7 @@ test("Apply validates before commit and binds expected revision", async () => {
   const d = new DeviceSession(transport),
     draft = await d.begin();
   draft.profiles[0].name = "My show";
-  await d.apply(draft, { wifi: { op: "keep" }, pairs: [] });
+  await d.apply(draft, { wifi: [], pairs: [] });
   assert.deepEqual(
     calls.map((c) => c.op),
     ["begin", "validate", "apply", "read"],
@@ -132,12 +159,15 @@ test("validation failure never sends apply; Apply failure never retries automati
       disconnect: async () => {},
     });
     const c = await d.begin();
-    await assert.rejects(() => d.apply(c, { wifi: { op: "keep" }, pairs: [] }));
+    await assert.rejects(() => d.apply(c, { wifi: [], pairs: [] }));
     assert.equal(
       calls.filter((c) => c === "apply").length,
       failure === "apply" ? 1 : 0,
     );
-    if (failure === "apply") assert.equal(d.session, undefined);
+    if (failure === "apply") {
+      assert.equal(d.session, undefined);
+      assert.equal(d.config, undefined, "uncertain Apply requires a fresh read");
+    }
   }
 });
 test("cancel sends session; disconnect discards edit and readable state", async () => {
@@ -180,14 +210,14 @@ test("runtime schema rejects bad device state and Unicode byte overflow", async 
   missing.activeProfile = 3;
   assert.throws(() => checkedConfig(missing));
   const network = structuredClone(fixture);
-  network.profiles[0].output = "tcp";
+  network.profiles[0].next[0].type = "tcp";
   assert.throws(() => checkedConfig(network));
   const unicode = structuredClone(fixture);
   unicode.profiles[0].name = "🦘".repeat(12);
   assert.throws(() => checkedConfig(unicode));
   const d = new DeviceSession({
     request: async () => ({
-      schemaVersion: 3,
+      schemaVersion: 99,
       protocolVersion: 2,
       deviceId: "aabbccddeeff",
     }),
@@ -226,38 +256,6 @@ test("manual LAN transport refuses plaintext, embedded credentials and ambiguous
     assert.throws(() => protectedLanUrl(url));
   assert.throws(() => new NativeLanTransport("https://example.net"));
 });
-test("browser credentials stay in memory and missing Web Bluetooth has a truthful fallback", async () => {
-  const { credentials, bleSupported } = await import("../src/transport");
-  Object.defineProperty(globalThis, "localStorage", {
-    configurable: true,
-    get() {
-      throw Error("Persistent plaintext storage must not be accessed");
-    },
-  });
-  Object.defineProperty(globalThis, "window", {
-    configurable: true,
-    value: { isSecureContext: true },
-  });
-  Object.defineProperty(globalThis, "navigator", {
-    configurable: true,
-    value: {},
-  });
-  assert.equal(bleSupported(), false);
-  Object.defineProperty(globalThis, "navigator", {
-    configurable: true,
-    value: { bluetooth: {} },
-  });
-  assert.equal(bleSupported(), true);
-  (globalThis.window as any).isSecureContext = false;
-  assert.equal(bleSupported(), false);
-  await credentials.set("test-device", "a".repeat(64));
-  assert.equal(await credentials.get("test-device"), "a".repeat(64));
-  await credentials.remove("test-device");
-  assert.equal(await credentials.get("test-device"), undefined);
-  delete (globalThis as any).window;
-  delete (globalThis as any).localStorage;
-});
-
 test("expired validation and failed Cancel release the local edit for recovery", async () => {
   const d = new DeviceSession({
     request: async (op) => {
@@ -268,10 +266,11 @@ test("expired validation and failed Cancel release the local edit for recovery",
     disconnect: async () => {},
   });
   const c = await d.begin();
-  await assert.rejects(() => d.apply(c, { wifi: { op: "keep" }, pairs: [] }));
+  await assert.rejects(() => d.apply(c, { wifi: [], pairs: [] }));
   assert.equal(d.session, undefined);
   await d.begin();
   await assert.rejects(() => d.cancel());
+  assert.equal(d.config, undefined, "failed Cancel requires a fresh read");
   assert.equal(d.session, undefined);
 });
 
@@ -407,7 +406,7 @@ test("durable Apply ID is saved before send and resolved after reconnect without
   );
   const c = await first.begin();
   await assert.rejects(() =>
-    first.apply(c, { wifi: { op: "keep" }, pairs: [] }),
+    first.apply(c, { wifi: [], pairs: [] }),
   );
   assert.match(persisted!, /^[0-9a-f]{32}$/);
   assert.ok(trace.indexOf("persist") < trace.indexOf("apply"));
@@ -501,7 +500,7 @@ test("removing receiver membership never silently retargets cues", async () => {
 });
 
 
-test("updates only requests a local physical screen after authorization and edit resolution", async () => {
+test("serial updates request a physical confirmation screen only after edit resolution", async () => {
   const calls: string[] = [];
   let accepted = true;
   const d = new DeviceSession({
@@ -511,15 +510,15 @@ test("updates only requests a local physical screen after authorization and edit
     },
     disconnect: async () => {},
   });
-  await assert.rejects(() => d.openUpdateSession(), /physical setup/);
+  await assert.rejects(() => d.openUpdateSession(), /USB serial/);
   d.config = structuredClone(fixture);
   d.status = {
     deviceId: "aabbccddeeff", boardId: "thinknode_m5", firmwareVersion: "0.1.0",
-    schemaVersion: 2, protocolVersion: 2, revision: 0, setup: true, editing: false,
-    claimed: true, capabilities: { ble_config: true, lan_config: false,
+    schemaVersion: 4, protocolVersion: 2, revision: 0, setup: true, editing: false,
+    claimed: true, capabilities: { ble_config: false, serial_config: true, lan_config: false,
       setup_hotspot: false, outputs: [], ota_session: false },
   };
-  await assert.rejects(() => d.openUpdateSession(), /physical setup/);
+  await assert.rejects(() => d.openUpdateSession(), /USB serial/);
   d.status.capabilities.ota_session = true;
   d.session = "1234567890abcdef";
   await assert.rejects(() => d.openUpdateSession(), /current edit/);
@@ -534,6 +533,63 @@ test("updates only requests a local physical screen after authorization and edit
   await d.openUpdateSession();
   assert.deepEqual(calls, ["updates", "updates"]);
   d.status.setup = false;
-  await assert.rejects(() => d.openUpdateSession(), /physical setup/);
-  assert.equal(calls.length, 2);
+  await d.openUpdateSession(); // USB does not require opening pairing/setup.
+  d.status.capabilities.serial_config = false;
+  await assert.rejects(() => d.openUpdateSession(), /USB serial/);
+  assert.equal(calls.length, 3);
+});
+
+
+test("serial setup reads settings without screen-code authentication", async () => {
+  const calls: string[] = [];
+  const d = new DeviceSession({
+    request: async (op) => {
+      calls.push(op);
+      return { config: structuredClone(fixture) };
+    }, disconnect: async () => {},
+  });
+  await d.read();
+  assert.deepEqual(calls, ["read"]);
+  assert.deepEqual(d.config, fixture);
+});
+
+test("Wi-Fi accepts a dynamic list and rejects duplicate, empty and oversized names", () => {
+  const c = structuredClone(fixture);
+  c.wifi = Array.from({ length: 20 }, (_, i) => ({ ssid: `Network ${i}`, configured: i % 2 === 0 }));
+  assert.equal(checkedConfig(c).wifi.length, 20);
+  c.wifi.push({ ...c.wifi[0] });
+  assert.throws(() => checkedConfig(c), /unique/);
+  for (const ssid of ["", "é".repeat(17), "bad\0name"]) {
+    c.wifi = [{ ssid, configured: false }];
+    assert.throws(() => checkedConfig(c));
+  }
+  c.wifi = [];
+  assert.deepEqual(checkedConfig(c).wifi, []);
+});
+
+test("per-event actions retain independent OSC destinations and reject invalid lists", async () => {
+  const { newAction, MAX_ACTIONS } = await import("../src/protocol");
+  const config = structuredClone(fixture);
+  config.profiles[0].next = [newAction("lora", "next"),
+    { ...newAction("osc_udp", "next"), host: "192.168.1.10", port: 8000 },
+    { ...newAction("osc_udp", "next"), host: "stage.local", port: 9000, osc: "/cue" }];
+  config.profiles[0].previous = [];
+  const roundtrip = checkedConfig(JSON.parse(JSON.stringify(config)));
+  assert.deepEqual(roundtrip.profiles[0].next.map(a => [a.type, a.host, a.port]), [
+    ["lora", "", 8000], ["osc_udp", "192.168.1.10", 8000], ["osc_udp", "stage.local", 9000],
+  ]);
+  config.profiles[0].next[2].enabled = false;
+  assert.equal(checkedConfig(config).profiles[0].next[2].enabled, false);
+  config.profiles[0].next = Array.from({ length: MAX_ACTIONS }, () => newAction("ble_keyboard", "next"));
+  checkedConfig(config);
+  config.profiles[0].next.push(newAction("ble_keyboard", "next"));
+  assert.throws(() => checkedConfig(config));
+  config.profiles[0].next = [{ ...newAction("tcp", "next"), host: "stage.local", port: 0 }];
+  assert.throws(() => checkedConfig(config));
+  config.profiles[0].next[0].port = 8000;
+  config.profiles[0].next[0].payload = "🦘".repeat(33);
+  assert.throws(() => checkedConfig(config), /128 UTF-8/);
+  config.profiles[0].next[0].payload = "next\0cue";
+  assert.throws(() => checkedConfig(config), /null characters/);
+  assert.throws(() => checkedConfig(JSON.parse(readFileSync(new URL("../../contracts/fixtures/config-v3.json", import.meta.url), "utf8"))));
 });

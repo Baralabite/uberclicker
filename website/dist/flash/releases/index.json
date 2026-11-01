@@ -1,1 +1,12 @@
-{"indexVersion":1,"releases":[]}
+{
+  "indexVersion": 1,
+  "releases": [
+    {
+      "version": "0.2.0-experimental.1",
+      "channel": "prerelease",
+      "manifestSha256": "284a5740c55c10b6eebd7ae92ef77958d1b27fb95bef21bedd9cd60ee5215fab",
+      "publishedAt": "2026-10-29T09:39:19Z",
+      "releaseUrl": "https://github.com/Baralabite/uberclicker/releases/tag/v0.2.0-experimental.1"
+    }
+  ]
+}

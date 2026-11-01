@@ -6,6 +6,18 @@ root = Path(__file__).resolve().parents[1]
 openssl = Path(os.environ.get('OPENSSL_PREFIX', '/opt/homebrew/opt/openssl@3'))
 flags = ['-I'+str(openssl/'include'), '-L'+str(openssl/'lib')] if openssl.exists() else []
 with tempfile.TemporaryDirectory() as tmp:
+    cloud = str(Path(tmp)/'cloud-clock')
+    subprocess.run(['c++', '-std=c++17', '-Wall', '-Wextra', '-Werror', '-I'+str(root/'include'), str(root/'tests/cloud_clock_test.cpp'), '-o', cloud], check=True)
+    subprocess.run([cloud], check=True)
+    retry = str(Path(tmp)/'wifi-retry')
+    subprocess.run(['c++', '-std=c++17', '-Wall', '-Wextra', '-Werror', '-I'+str(root/'include'), str(root/'tests/wifi_retry_test.cpp'), '-o', retry], check=True)
+    subprocess.run([retry], check=True)
+    names = str(Path(tmp)/'ble-names')
+    subprocess.run(['c++', '-std=c++17', '-Wall', '-Wextra', '-Werror', '-I'+str(root/'include'), str(root/'tests/ble_name_test.cpp'), '-o', names], check=True)
+    subprocess.run([names], check=True)
+    broadcast = str(Path(tmp)/'broadcast')
+    subprocess.run(['c++', '-std=c++17', '-Wall', '-Wextra', '-Werror', '-I'+str(root/'include'), str(root/'tests/broadcast_test.cpp'), '-o', broadcast], check=True)
+    subprocess.run([broadcast], check=True)
     core = str(Path(tmp)/'core')
     common = ['c++', '-std=c++17', '-Wall', '-Wextra', '-Werror', '-I'+str(root/'include')]
     subprocess.run(common + ['-DHOST_TEST_OPENSSL', str(root/'tests/core_test.cpp'), str(root/'src/radio_protocol.cpp'), str(root/'src/radio_admin.cpp'), str(root/'src/output_codec.cpp')] + flags + ['-lcrypto', '-o', core], check=True)

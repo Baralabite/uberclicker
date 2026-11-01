@@ -1,7 +1,7 @@
 # UberClicker website preview
 
 The approved marketing design is preserved in `dist/index.html`, with experimental
-USB installation at `/flash/`, the real browser BLE configuration app at `/app/`,
+USB installation at `/flash/`, the real desktop browser USB serial configuration app at `/app/`,
 and firmware-derived device review at `/device-preview.html`. Fonts, Three.js and
 the pinned esptool-js bundle are local. Opening as `file://` does not load modules.
 
@@ -21,19 +21,18 @@ node website/check.mjs
 
 Before serving, run `npm ci --prefix app` and `node scripts/build-website.mjs` to
 copy the built app and device preview. The homepage demonstrations remain labelled
-simulations. The separate setup/installer pages can connect to hardware only by
-explicit user action in supported secure-context browsers. No analytics, account
-backend or remote relay is included. Protected LAN/hotspot configuration is unavailable.
+simulation. The separate setup/installer pages can connect to hardware only by
+explicit user action in supported secure-context browsers. The Cloudflare account dashboard and Pro relay are deployed separately at `app.uberclicker.com` and `api.uberclicker.com`. Protected LAN/hotspot configuration is unavailable.
 
-Source: <https://github.com/Baralabite/uberclicker>. This is a noncommercial project released under the MIT license. “Noncommercial” describes the project, not a restriction on downstream reuse; MIT permits commercial reuse.
+Source: <https://github.com/Baralabite/uberclicker>. Local functionality and source remain free under MIT; Cloud Channels are an optional paid Pro feature.
 
-Pages builds the app, runs integrity/behavior checks and mirrors verified published
-firmware through `.github/workflows/pages.yml`. Firmware CI uses a separate workflow.
-The original site was verified at <https://baralabite.github.io/uberclicker/> before
-the user confirmed preserving `uberclicker.com`. GitHub now reports valid DNS, while
-HTTPS certificate issuance remains pending. Hosted BLE/Serial requires HTTPS.
-No source `CNAME` is needed for Actions deployment. See [deployment](../docs/deployment.md)
-and [installation](../docs/flashing.md) for evidence and recovery.
+Production is served by the `uberclicker-website` Cloudflare Worker, using `wrangler.jsonc`. Deploy from the repository root after building with:
+
+```sh
+./cloud/node_modules/.bin/wrangler deploy --config website/wrangler.jsonc
+```
+
+Cloudflare proxies the apex/www DNS records and routes their traffic to the Worker. Both domains have working HTTPS. `/app/` redirects to the app's device configuration section; the homepage Login button opens the account dashboard. The existing GitHub Pages workflow remains a legacy mirror/build check; it does not deploy updates to Cloudflare. See [deployment](../docs/deployment.md) for the current manual release commands and historical Pages evidence.
 
 See `docs/website-design.md` for decisions, sources, checks and known limits. `qa/` contains browser review screenshots; it is outside the served directory.
 

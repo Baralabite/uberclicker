@@ -1,3 +1,5 @@
+> Current broadcast implementation (1 November 2026): see [user guide](user-guide.md). USB serial configuration only on TX and RX; Bluetooth is reserved for keyboard/MIDI output; no radio configuration, no saved app credentials, and no RX radio replies. Sections below describing BLE configuration and paired radio/admin flows are historical.
+
 # Firmware implementation
 
 Experimental development build for the ThinkNode M5, 29 October 2026. It has
@@ -78,9 +80,14 @@ Concurrent HID-host plus phone configuration is not implemented. Core forwards a
 configuration never treats a Just Works bond as authorization. DisplayOnly Secure
 Connections MITM uses the configuration-generated six-digit passkey. New pairing
 requires physical setup; existing encrypted bonds can reconnect. Service discovery
-must be tested on real hosts. The 29-byte advertisement carries config/HID UUIDs
-and keyboard appearance; the 31-byte active scan response carries the MIDI UUID
-and device name. Both payloads are checked against the 31-byte legacy limit.
+must be tested on real hosts. The advertisement carries the HID and MIDI UUIDs plus
+keyboard appearance. The scan response carries `UberClicker TX: <device name>` or
+`UberClicker RX: <device name>`, with a MAC-suffix default device name. Names longer than
+29 UTF-8 bytes use a shortened-name advertisement; the pinned GAP service permits
+31 bytes. Truncation preserves UTF-8 boundaries. Applying settings or changing
+the active profile updates names without disconnecting the host. Both payloads
+are checked against the 31-byte legacy limit. BLE configuration is disabled.
+The device name remains stored in `profiles[activeProfile].name` for schema-v2 compatibility.
 
 Every output is paused during setup, staged editing and device menus. Entering a
 pause invalidates pending network jobs and the radio session, and requests zero
@@ -96,6 +103,11 @@ its NVS records, ownership, profiles, Wi-Fi secret and pair key. Core deletes BL
 bonds and explicitly restores the Wi-Fi driver's persisted defaults, then clears
 the intent marker and enters unclaimed setup. A failed step retains the marker,
 locks output and reports incomplete reset over serial; restarting retries it.
+Arduino 3.3.11 requires `WiFi.STA.begin(false)` before `eraseAP()`; selecting STA
+mode alone leaves the station interface unstarted. Earlier builds could remain
+at `Reset incomplete; restart to retry, outputs locked`, retaining the reset
+screen across reflashes and power cycles. The corrected reset starts STA without
+connecting, restores driver defaults, and completes the existing reset request.
 This also prevents disconnect/bond-write races from reviving a bond after reset.
 Physical power-interruption/reset acceptance is still pending.
 Firmware is retained; no cloud inventory deletion is claimed. The development

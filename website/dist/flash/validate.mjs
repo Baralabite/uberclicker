@@ -8,7 +8,10 @@ export function validateManifest(m) {
   if (!m || m.manifestVersion !== 1 || !VERSION.test(m.version) || m.version.length > 31 || m.channel !== 'prerelease' ||
       m.board !== BOARD || m.chip !== 'esp32s3' || m.flashSize !== 4194304 ||
       !/^[0-9a-f]{40}$/.test(m.sourceCommit) || m.sourceDirty !== false || m.hardwareValidated !== false ||
-      ![1, 2].includes(m.settingsSchemaVersion) || m.configProtocolVersion !== m.settingsSchemaVersion || m.radioProtocolVersion !== 1) fail('Unsupported release metadata.');
+      ![1, 2, 4].includes(m.settingsSchemaVersion) || m.configProtocolVersion !== (m.settingsSchemaVersion === 1 ? 1 : 2) || m.radioProtocolVersion !== 1) fail('Unsupported release metadata.');
+  if (m.settingsSchemaVersion === 4 && (m.configTransport !== 'usb_serial' || m.radioMode !== 'broadcast' ||
+      m.bleFramingVersion !== 0 || m.remoteConfigRadioVersion !== 0 ||
+      JSON.stringify(m.preserveSettingsSchemas) !== '[1,2,3,4]' || m.settingsMigration !== 'atomic-on-apply-v1-v3-to-v4')) fail('Unsupported v4 migration or transport.');
   if (m.settingsSchemaVersion === 2 && (m.bleFramingVersion !== 1 || m.remoteConfigRadioVersion !== 2 ||
       JSON.stringify(m.preserveSettingsSchemas) !== '[1,2]' || m.settingsMigration !== 'atomic-on-apply-v1-to-v2')) fail('Unsupported v2 migration or remote-management protocol.');
   if (m.settingsSchemaVersion === 1 && ((m.bleFramingVersion !== undefined && m.bleFramingVersion !== 1) ||

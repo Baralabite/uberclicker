@@ -1,0 +1,113 @@
+.account-page { padding-bottom: 80px; }
+.room-codes label { display: grid; gap: 10px; }
+body:has(#page-account:not([hidden]) .account-signin) { background: var(--accent); }
+#app:has(#page-account:not([hidden]) .account-signin) { min-height: 100dvh; display: flex; flex-direction: column; }
+#app:has(.account-signin) .app-chrome { flex: none; }
+#page-account:has(.account-signin) { flex: 1; display: flex; }
+.account-page.account-signin { position: relative; display: grid; place-items: center; flex: 1; width: 100%; max-width: none; margin: 0; padding: 32px 24px; background: var(--accent); color: white; }
+.login-panel { display: flex; align-items: center; width: min(100%, 460px); margin: 0; padding: 6px; border-radius: 14px; background: rgb(255 255 255 / .18); }
+.login-panel:focus-within { outline: 2px solid rgb(255 255 255 / .8); outline-offset: 3px; }
+.login-panel input { flex: 1; width: 100%; min-width: 0; padding: 16px; border: 0; border-radius: 8px; background: transparent; color: white; font-size: 18px; box-shadow: none; }
+.login-panel input::placeholder { color: rgb(255 255 255 / .85); opacity: 1; }
+.login-panel input:focus-visible { outline: none; }
+.login-panel button { display: grid; place-items: center; flex: none; width: 52px; height: 52px; min-height: 44px; padding: 12px; margin: 0; border: 0; border-radius: 10px; background: transparent; color: white; }
+.login-panel button:hover:not(:disabled) { background: rgb(255 255 255 / .14); }
+.login-panel button:focus-visible { outline: 2px solid white; outline-offset: -3px; }
+.login-panel button svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.account-signin .account-message { position: absolute; top: calc(50% + 52px); left: 50%; transform: translateX(-50%); width: min(calc(100% - 48px), 460px); max-width: none; margin: 0; padding: 0; background: transparent; color: white; text-align: center; font-size: 15px; }
+.account-message:empty { display: none; }
+.account-message { padding: 14px 18px; background: #e8eefc; border-radius: 6px; }
+.plan-actions { display: grid; gap: 10px; align-content: start; }
+.rooms-section, .profile-section { margin-top: 12px; }
+.account-page .section-heading { display: flex; justify-content: space-between; align-items: center; }
+.inline-form { display: flex; align-items: end; gap: 16px; margin: 22px 0; }
+.inline-form label { display: grid; gap: 8px; flex: 1; max-width: 450px; }
+.inline-form input { width: 100%; }
+.room-row { padding: 22px 0; border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.room-row h3 { margin: 0 0 6px; }
+.room-row p { margin: 0 0 8px; font-size: 14px; }
+.room-codes { padding: 24px; background: #e8eefc; border-radius: 8px; margin: 20px 0; }
+.room-codes textarea { width: 100%; font-size: 12px; overflow-wrap: anywhere; resize: vertical; }
+.account-link { display: inline-block; padding: 12px 18px; background: var(--accent); color: white; border-radius: 6px; text-decoration: none; }
+.account-page .text { border: 0; background: transparent; color: #2647af; padding: 10px 0; text-align: left; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+@media(max-width: 680px) { .inline-form { align-items: stretch; flex-direction: column; } .inline-form label { max-width: none; } .app-nav { gap: 18px; overflow-x: auto; } .app-nav a { white-space: nowrap; } }
+
+@media(max-width: 680px) { .room-row { flex-direction: column; align-items: stretch; } }
+
+.rooms-section { padding-top: 4px; }
+.room-row > div { min-width: 0; }
+.room-row h3 { font-size: 18px; }
+.room-row .plan-actions { max-width: 320px; }
+
+/* Mobile is the base layout; widen only when the content has room. */
+.account-page { min-width: 0; }
+.account-page .inline-form { flex-direction: column; align-items: stretch; gap: 12px; margin: 16px 0; }
+.account-page .inline-form label { max-width: none; min-width: 0; }
+.account-page .section-heading { flex-wrap: wrap; gap: 12px; }
+.room-codes { padding: 16px; }
+.room-row h3 { overflow-wrap: anywhere; }
+@media(min-width: 681px) {
+  .account-page .inline-form { flex-direction: row; align-items: end; gap: 16px; }
+  .account-page .inline-form label { max-width: 450px; }
+  .room-codes { padding: 24px; }
+}
+
+.clickers-section { padding-top: 8px; }
+.clickers-section .section-heading h1 { margin: 0; font-size: 24px; }
+.clickers-section .section-heading button { margin: 0; }
+.clickers-table { width: 100%; table-layout: fixed; border-collapse: collapse; margin-top: 16px; font-size: 14px; }
+.clickers-table th, .clickers-table td { text-align: left; padding: 12px 8px; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.clickers-table th:first-child, .clickers-table td:first-child { padding-left: 0; }
+.clickers-table th:last-child, .clickers-table td:last-child { padding-right: 0; }
+.clickers-table td button { margin: 0; }
+#clicker-pairing { margin-top: 24px; }
+#clicker-pairing h3 { margin: 0; }
+#link-clicker { max-width: 480px; }
+.pairing-help { padding-left: 20px; font-size: 14px; line-height: 1.6; }
+.pairing-help li + li { margin-top: 8px; }
+.pairing-actions { display: flex; gap: 12px; }
+.pairing-actions button { margin: 0; }
+
+.clicker-name { width: 100%; text-align: left; padding: 10px 0; margin: 0; background: transparent; color: var(--accent); overflow-wrap: anywhere; }
+.clickers-table tr[data-clicker] { cursor: pointer; }
+.clickers-table tr[data-clicker]:hover { background: #e8eefc; }
+#clicker-dialog { width: min(480px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 24px; border: 1px solid var(--line); border-radius: 12px; color: inherit; background: #f5f7fa; }
+#clicker-dialog::backdrop { background: rgb(15 25 45 / .5); }
+#clicker-dialog h2 { margin: 0; overflow-wrap: anywhere; }
+#clicker-dialog .channel-choices { padding: 0; margin: 24px 0; border: 0; }
+#clicker-dialog legend { font-size: 16px; padding: 0; margin-bottom: 12px; }
+.channel-choices label { flex-direction: row; align-items: center; gap: 12px; padding: 12px 0; min-height: 48px; }
+.channel-choices input { width: 22px; height: 22px; min-height: 22px; flex: none; margin: 0; accent-color: var(--accent); }
+.channel-choices span { overflow-wrap: anywhere; }
+.channel-choices small { display: block; font-weight: 400; }
+.clicker-dialog-actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.clicker-dialog-actions button { margin: 0; }
+
+.clickers-table th:last-child, .clickers-table td:last-child { width: 84px; }
+.clickers-table time { font-weight: 400; }
+
+.account-avatar { flex: none; width: 44px; height: 44px; min-height: 44px; padding: 0; margin: 0; border-radius: 50%; background: #e8eefc; color: var(--accent); }
+.account-popover { position: fixed; inset: auto; margin: 0; width: min(260px, calc(100vw - 32px)); padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: white; color: #17243a; }
+.account-popover button, .account-popover a { display: block; width: 100%; min-height: 44px; text-align: left; padding: 12px; margin: 0; border: 0; border-radius: 6px; background: transparent; color: inherit; text-decoration: none; font-size: 15px; }
+.account-popover button:hover, .account-popover a:hover { background: #e8eefc; }
+.account-menu-name { margin: 4px 12px 12px; font-weight: 650; overflow-wrap: anywhere; }
+.account-popover [role=status]:empty { display: none; }
+.account-dialog { width: min(480px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 24px; border: 1px solid var(--line); border-radius: 12px; background: #f5f7fa; color: #17243a; }
+.account-dialog::backdrop { background: rgb(15 25 45 / .5); }
+.account-dialog .section-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 24px; }
+.account-dialog .section-heading h2 { margin: 0; }
+.account-dialog .text { border: 0; background: transparent; color: #2647af; padding: 10px 0; }
+.account-dialog .clicker-dialog-actions { margin-top: 20px; }
+.channels-section .section-heading h2 { margin: 0; font-size: 24px; }
+.channels-section .section-heading button { margin: 0; }
+.channels-table { width: 100%; table-layout: fixed; border-collapse: collapse; margin-top: 16px; font-size: 14px; }
+.channels-table th, .channels-table td { text-align: left; padding: 12px 8px; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.channels-table th:first-child { padding-left: 0; }
+.channels-table th:last-child, .channels-table td:last-child { width: 84px; padding-right: 0; }
+.channels-table button { margin: 0; }
+.channel-name { width: 100%; text-align: left; padding: 10px 0; background: transparent; color: var(--accent); overflow-wrap: anywhere; }
+.channels-table tr[data-channel] { cursor: pointer; }
+.channels-table tr[data-channel]:hover { background: #e8eefc; }
+
+.channels-table .manual-link { display: block; min-height: 44px; padding: 12px 0; color: var(--accent); }

@@ -11,12 +11,20 @@
 }
 body {
   margin: 0;
+  padding-left: var(--safe-area-inset-left, env(safe-area-inset-left, 0px));
+  padding-right: var(--safe-area-inset-right, env(safe-area-inset-right, 0px));
+  padding-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
 }
+[hidden] { display: none !important; }
+.app-nav { display: flex; gap: 24px; padding: 0 max(24px, calc((100vw - 880px) / 2)); background: white; border-bottom: 1px solid var(--line); }
+.app-nav a { padding: 17px 0 14px; color: #52617a; text-decoration: none; border-bottom: 3px solid transparent; font-size: 14px; font-weight: 650; }
+.app-nav a[aria-current="page"] { color: var(--accent); border-bottom-color: var(--accent); }
 header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px max(24px, calc((100vw - 1000px) / 2));
+  padding: 16px max(24px, calc((100vw - 880px) / 2));
+  padding-top: calc(16px + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)));
   border-bottom: 1px solid var(--line);
   gap: 16px;
   background: white;
@@ -41,19 +49,19 @@ header > span {
   color: #52617a;
 }
 main {
-  max-width: 1000px;
+  max-width: 880px;
   margin: auto;
-  padding: 44px 24px 24px;
+  padding: 28px 24px;
 }
 h1 {
-  font-size: clamp(34px, 6vw, 60px);
+  font-size: 30px;
   line-height: 1.04;
-  letter-spacing: -2px;
-  margin: 0 0 20px;
+  letter-spacing: -0.6px;
+  margin: 0 0 16px;
   font-weight: 700;
 }
 h2 {
-  font-size: 23px;
+  font-size: 20px;
   letter-spacing: -0.5px;
   margin: 0 0 14px;
 }
@@ -62,7 +70,7 @@ p {
   max-width: 65ch;
 }
 .intro {
-  margin-bottom: 32px;
+  margin-bottom: 20px;
 }
 .intro p {
   color: #52617a;
@@ -71,62 +79,18 @@ p {
 .notice {
   padding: 15px 18px;
   background: #e8eefc;
-  border-left: 3px solid var(--accent);
+  border-radius: 6px;
   font-size: 15px;
   max-width: none;
 }
 .notice.error {
   background: #fff0ec;
-  border-color: #af3820;
   color: #7b2619;
 }
 section,
 details {
-  padding: 30px 0;
+  padding: 24px 0;
   border-bottom: 1px solid var(--line);
-}
-.connect {
-  display: grid;
-  grid-template-columns: 250px 1fr;
-  align-items: center;
-  gap: 54px;
-  padding: 35px 0 55px;
-}
-.device-drawing {
-  background: #243047;
-  border-radius: 25px;
-  width: 210px;
-  height: 270px;
-  margin: auto;
-  padding: 22px 16px;
-  box-shadow: 7px 9px 0 #dce2ed;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-}
-.device-drawing div {
-  background: #fff;
-  color: #17243a;
-  width: 100%;
-  height: 170px;
-  text-align: center;
-  padding-top: 40px;
-  font-size: 27px;
-  letter-spacing: -1px;
-}
-.device-drawing strong {
-  display: block;
-  font-size: 12px;
-  letter-spacing: 0;
-  margin-top: 28px;
-}
-.device-drawing i {
-  display: block;
-  border: 1px solid #8590a5;
-  width: 60px;
-  height: 18px;
-  border-radius: 20px;
-  margin: 20px 5px;
 }
 button {
   font: inherit;
@@ -177,38 +141,14 @@ button.secondary {
   white-space: nowrap;
   font-size: 14px;
 }
-.action-strip {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  border: 1px solid var(--line);
-  background: white;
-  border-radius: 12px;
-  margin: 28px 0;
-  overflow: hidden;
-}
-.action-strip div {
-  padding: 24px;
-}
-.action-strip div + div {
-  border-left: 1px solid var(--line);
-}
-.action-strip span {
-  color: #52617a;
-  font-size: 14px;
-}
-.action-strip strong {
-  display: block;
-  font-size: 30px;
-  letter-spacing: -0.5px;
-  margin-top: 10px;
-}
 .fields {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 20px;
   margin: 18px 0;
 }
 label {
+  min-width: 0;
   font-size: 14px;
   font-weight: 600;
   display: flex;
@@ -216,7 +156,8 @@ label {
   gap: 7px;
 }
 input,
-select {
+select,
+textarea {
   font: inherit;
   color: inherit;
   background: white;
@@ -226,6 +167,7 @@ select {
   min-height: 46px;
   padding: 10px 12px;
 }
+textarea:focus-visible,
 input:focus-visible,
 select:focus-visible,
 button:focus-visible,
@@ -241,9 +183,21 @@ fieldset {
   border-radius: 10px;
 }
 legend {
-  font-size: 23px;
+  font-size: 20px;
   font-weight: 650;
   padding: 0 7px;
+}
+fieldset details {
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+fieldset details summary {
+  font-size: 14px;
+}
+.identity h2,
+.profile-tabs button {
+  overflow-wrap: anywhere;
 }
 .profile-tabs {
   display: flex;
@@ -279,6 +233,7 @@ footer {
 @media (max-width: 600px) {
   header {
     padding: 20px;
+    padding-top: calc(20px + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)));
   }
   .brand {
     font-size: 22px;
@@ -288,14 +243,6 @@ footer {
   }
   main {
     padding: 32px 20px;
-  }
-  .connect {
-    grid-template-columns: 1fr;
-    gap: 38px;
-  }
-  .device-drawing {
-    transform: scale(0.85);
-    margin: -15px auto;
   }
   .fields {
     grid-template-columns: 1fr;
@@ -307,15 +254,10 @@ footer {
     display: inline-block;
     margin-top: 15px;
   }
-  .action-strip div {
-    padding: 18px;
-  }
-  .action-strip strong {
-    font-size: 23px;
-  }
   .intro p {
     font-size: 16px;
   }
+  .footer-actions { flex-wrap: wrap; }
   .apply-bar {
     margin-left: -5px;
     margin-right: -5px;
@@ -335,33 +277,48 @@ footer {
     filter: brightness(0.94);
   }
 }
-.receiver-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 20px;
-  padding: 18px 0;
-  border-top: 1px solid var(--line);
-}
-.receiver-row p {
-  margin: 6px 0;
-  font-size: 14px;
-  color: #52617a;
-}
-.receiver-row > div:last-child {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-@media (max-width: 600px) {
-  .receiver-row {
-    display: block;
-  }
-  .receiver-row > div:last-child {
-    justify-content: flex-start;
-    margin-top: 12px;
-  }
-  .footer-actions {
-    flex-wrap: wrap;
-  }
-}
+.event-config { margin-top: 30px; padding: 20px; }
+.event-action { border-top: 1px solid var(--line); padding: 20px 0 12px; }
+.action-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.action-heading h3 { font-size: 19px; margin: 0; }
+.action-toggle { flex-direction: row; align-items: center; gap: 8px; }
+.action-toggle input { width: 20px; min-height: 20px; height: 20px; accent-color: var(--accent); }
+.action-disabled .action-heading h3 { color: #52617a; }
+.action-controls { display: flex; flex-wrap: wrap; }
+.event-config .action-picker { padding-top: 18px; border-top: 1px solid var(--line); }
+.event-config .action-picker summary { font-size: 16px; color: var(--accent); }
+.action-types { margin-top: 12px; display: flex; flex-wrap: wrap; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (max-width: 600px) { .event-config { padding: 12px; } .action-heading { align-items: flex-start; } }
+
+.notice:empty { display: none; }
+textarea { resize: vertical; }
+h1, h2, h3 { overflow-wrap: anywhere; }
+.app-nav { overflow-x: auto; white-space: nowrap; }
+button, summary, a { touch-action: manipulation; }
+.device-setup details > summary { color: var(--accent); }
+.device-setup .identity details { padding: 8px 0 0; border: 0; }
+.event-action .hint { margin: 8px 0; }
+.event-action .fields:empty { display: none; }
+.action-options { margin-top: 8px; }
+.action-options summary { color: #52617a; }
+@media (max-width: 600px) { input, select, textarea { font-size: 16px; } }
+
+.event-config { border: 0; border-radius: 0; padding: 0; }
+.event-config legend { padding: 0; font-size: 18px; }
+.event-config .event-action { padding: 12px 0; border-top: 1px solid var(--line); }
+.event-config .event-action > summary { font-size: 16px; color: #17243a; }
+.event-action > .action-heading { justify-content: flex-end; margin: 8px 0; }
+#profiles { padding: 8px 0; border: 0; }
+summary { min-height: 44px; align-content: center; }
+::selection { background: #d7e1ff; color: #17243a; }
+
+/* Keep mobile inputs readable without automatic focus zoom. */
+input, select, textarea { font-size: 16px; }
+main, section, fieldset { min-width: 0; }
+@media(min-width: 681px) { .fields { grid-template-columns: 1fr 1fr; } }
+
+.app-chrome { background: white; min-width: 0; }
+.desktop-layout .app-chrome { position: sticky; top: 0; z-index: 10; }
+.brand { gap: 10px; }
+.brand-logo { display: block; width: 32px; height: 32px; flex: none; }

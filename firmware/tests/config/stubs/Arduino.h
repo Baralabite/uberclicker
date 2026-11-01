@@ -47,4 +47,9 @@ public:
   auto end() const { return s.end(); }
 };
 inline uint32_t testMillis = 0;
-inline uint32_t millis() { return testMillis; }
+inline uint32_t testMillisStep = 0;
+inline uint32_t millis() {
+  uint32_t now = testMillis;
+  testMillis += testMillisStep;
+  return now;
+}

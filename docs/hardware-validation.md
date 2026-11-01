@@ -1,10 +1,38 @@
+> Current broadcast implementation (1 November 2026): see [user guide](user-guide.md). USB serial configuration only on TX and RX; Bluetooth is reserved for keyboard/MIDI output; no radio configuration, no saved app credentials, and no RX radio replies. Sections below describing BLE configuration and paired radio/admin flows are historical.
+
 # Hardware acceptance record
 
-Baseline: 29 October 2026. **No physical device has been flashed or validated by
-this work.** Experimental build/host evidence is separate from hardware acceptance.
+Baseline: 29 October 2026 was software-only. One connected device was flashed for
+reset recovery on 1 November 2026, as recorded below. Experimental build/host
+evidence and this limited recovery check are separate from hardware acceptance.
 Stable promotion is blocked until UI review and these physical gates pass. Record
 board revision/serial, firmware commit/version, app build, host/OS and test date
 with every result; retain logs and photos without exposing passkeys or secrets.
+
+## 1 November 2026 reset recovery
+
+One user-identified RX ThinkNode M5 connected over CH340 on macOS (OS version and
+board revision not recorded) retained its factory-reset screen across uploads
+and power cycles. Serial output identified `STA not started! You must call begin
+first.` followed by `Reset incomplete; restart to retry, outputs locked`.
+The requested reset was stopping before the first display frame was submitted.
+
+The local modified build, version `0.1.0-experimental`, starts the station interface
+without connecting before erasing Wi-Fi defaults. Firmware SHA-256:
+`95a1be0e2c5a83d16f8881e3867bea72cc39bff4d9880bfdc99909c377b4547b`.
+The installed partition table matched the build byte-for-byte before upload.
+PlatformIO/esptool uploaded the build without a whole-flash erase and verified
+the written image hashes. On a subsequent reset, serial output reached
+`Startup complete: TX, radio ready, display frame queued` and
+`E-paper first refresh returned`, with no pending-reset halt. TX is the default
+role after the previously requested factory reset; the RX must be configured again.
+The boot log is retained locally at `/tmp/uberclicker-rx-boot-after.log`.
+
+The user confirmed that the physical screen changed from Factory reset to the
+setup/claim screen after this recovery. This checks flashing, reset recovery and
+the visible initial display update on one device. Detailed panel appearance,
+BLE configuration, RF/output behavior and the full acceptance gates below still
+require separate verification.
 
 ## Software evidence available
 

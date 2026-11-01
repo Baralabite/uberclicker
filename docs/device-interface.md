@@ -1,10 +1,17 @@
+> Current broadcast implementation (1 November 2026): see [user guide](user-guide.md). USB serial configuration only on TX and RX; Bluetooth is reserved for keyboard/MIDI output; no radio configuration, no saved app credentials, and no RX radio replies. Sections below describing BLE configuration and paired radio/admin flows are historical.
+
 # Minimal device interface
 
-The TX home is deliberately simple: a large **TX**, coarse battery, **AVG** radio
-signal bars, and **connected/paired RX** count. It has no profile, action labels,
-click counter, GPS, charging inference or battery percentage. A missing-receiver
-warning is independent of the average: two strong receivers must not hide a third
-unreachable receiver. [Open the review](../device-preview.html).
+The status bar shows the device name instead of the device/output type
+label, beside mode icons and voltage-estimated battery percentage. LoRa uses cellular bars:
+TX always shows full bars; RX uses the selected transmitter's measured RSSI.
+Bluetooth, Wi-Fi, keyboard, MIDI, OSC, UDP and TCP have distinct icons; disconnected
+Wi-Fi is slashed. Unknown battery readings show **--%**.
+TX home centres the device name in its body too. Names wrap at spaces and scale to fill the available width and height. Button instructions
+are hidden. With one recent TX, RX home shows a bold **Receiving:** heading above its device
+name, scaled to fill the remaining space, with Last Seen beneath it. Multiple recent transmitters use the selectable list
+of TX device names and Last Seen times; none shows the waiting screen.
+[Open the review](../device-preview.html).
 
 ![Actual minimal TX renderer examples](../designs/firmware/tx-review-sheet.png)
 
@@ -159,9 +166,13 @@ Renderer output is 5,000 row-major bytes, MSB first, 1 = black. Actual small-tex
 readability, orientation and optics remain physical acceptance tests.
 
 The independent FreeRTOS display task has a length-one overwrite queue, coalesces
-the latest frame, skips identical frames and starts full refreshes at least 2.5 s
-apart. The reference full refresh takes approximately 2 s. Input/radio do not wait
-for it. Display HSPI uses SCK38, MOSI45, CS39, DC40, reset41, busy42, independently
+the latest frame, skips identical frames and starts refreshes at least 2.5 s
+apart. After the initial full refresh, it compares against the displayed buffer
+and partially refreshes the bounding rectangle of changed bytes on every screen.
+Horizontal bounds align to the panel's 8-pixel addressing. This keeps routine
+RX “Last Seen” updates within the changed text area. The reference full refresh
+takes approximately 2 s. Input/radio do not wait for it. Display HSPI uses SCK38,
+MOSI45, CS39, DC40, reset41, busy42, independently
 of the radio. Allocation failure returns false; a retained paper image cannot
 prove power or readiness.
 
@@ -188,7 +199,7 @@ unchanged home after a cue, RX no-cue, button debounce/chord/no-repeat/startup-h
 reset cancellation/hold/rollover, pause transitions, durable receipt semantics,
 remote target isolation and physical recovery. A mocked FreeRTOS/SPI/panel test
 executes the production display task to check coalescing, cadence, identical-frame
-skipping and allocation failures. UBSan passes; the host ASan runtime previously
+skipping, partial refresh bounds, pixel erasure and allocation failures. UBSan passes; the host ASan runtime previously
 stalled before test entry, so no ASan coverage is claimed.
 
 [Hardware acceptance](hardware-validation.md) remains pending. UI preview/build

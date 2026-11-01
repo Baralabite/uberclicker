@@ -16,6 +16,10 @@ inline std::function<void()> onDelay, onDisplay;
 inline std::vector<uint32_t> starts;
 inline std::vector<uint8_t> firstPixels;
 inline uint8_t bitmapFirst=0;
+struct Window { unsigned x,y,width,height; bool partial; };
+inline std::vector<Window> windows;
+inline std::vector<uint8_t> bitmap(5000), screen(5000);
+inline unsigned powerOffs=0;
 }
 using QueueHandle_t=host::Queue *;
 constexpr int pdPASS=1, OUTPUT=1, HIGH=1, HSPI=1, MSBFIRST=1, SPI_MODE0=0;
@@ -43,3 +47,4 @@ inline int xTaskCreate(void(*task)(void *),const char *,unsigned,void *,unsigned
 }
 struct SPISettings{SPISettings(int,int,int){}};
 struct SPIClass{explicit SPIClass(int){};void begin(int,int,int,int){}};
+inline struct TestSerial { void println(const char *) {} } Serial;

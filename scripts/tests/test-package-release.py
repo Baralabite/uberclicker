@@ -71,6 +71,16 @@ class PackageTests(unittest.TestCase):
         self.binary[80:91] = b'OtherDevice'
         (self.root / 'firmware.bin').write_bytes(self.binary)
         with self.assertRaises(ValueError): self.package()
+    def test_serial_broadcast_metadata_preserves_all_supported_settings(self):
+        header = 'kConfigSchemaVersion=4, kConfigProtocolVersion=2;'
+        metadata = release.protocol_metadata(header, 4, "b[0]='U';b[1]='B';b[2]=1;")
+        self.assertEqual(metadata['configTransport'], 'usb_serial')
+        self.assertEqual(metadata['radioMode'], 'broadcast')
+        self.assertEqual(metadata['bleFramingVersion'], 0)
+        self.assertEqual(metadata['remoteConfigRadioVersion'], 0)
+        self.assertEqual(metadata['preserveSettingsSchemas'], [1, 2, 3, 4])
+        with self.assertRaises(ValueError): release.protocol_metadata(header, 4, 'b[2]=2;')
+        with self.assertRaises(ValueError): release.protocol_metadata(header, 3, 'b[2]=1;')
     def test_descriptor_version_limit(self):
         with self.assertRaises(ValueError): release.package(self.layout, self.root / 'out', '0.1.0-' + 'a' * 26, 'a' * 40)
     def test_no_stable_publication(self):

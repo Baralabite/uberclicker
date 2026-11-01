@@ -1,10 +1,11 @@
-import Ajv2020 from "ajv/dist/2020.js";
-import configSchema from "../../contracts/config.schema.json";
-export const SERVICE = "8f4e1000-6b8d-4b37-9f4a-75b61e350001";
-export const WRITE = "8f4e1001-6b8d-4b37-9f4a-75b61e350001";
-export const NOTIFY = "8f4e1002-6b8d-4b37-9f4a-75b61e350001";
+import schemaCheck from "./generated/config-validator";
 export const MAX_MESSAGE = 8192;
+export const MAX_ACTIONS = 8;
 export interface Action {
+  type: "lora" | "ble_keyboard" | "ble_midi" | "osc_udp" | "udp" | "tcp" | "cloud";
+  enabled: boolean;
+  host: string;
+  port: number;
   key: number;
   modifiers: number;
   midi: {
@@ -18,20 +19,23 @@ export interface Action {
 }
 export interface Profile {
   name: string;
-  output: "ble_keyboard" | "ble_midi" | "osc_udp" | "udp" | "tcp";
-  host: string;
-  port: number;
-  previous: Action;
-  next: Action;
+  previous: Action[];
+  next: Action[];
+}
+export function newAction(type: Action["type"], event: "previous" | "next"): Action {
+  const previous = event === "previous";
+  return { type, enabled: true, host: type === "cloud" ? "api.uberclicker.com" : "",
+    port: type === "cloud" ? 443 : 8000, key: previous ? 80 : 79, modifiers: 0,
+    midi: { type: "note", channel: 1, number: previous ? 60 : 62, value: 100 },
+    osc: `/${event}`, payload: event };
 }
 export interface Config {
-  schemaVersion: 2;
+  schemaVersion: 4;
   revision: number;
   role: "tx" | "rx";
-  route: "lora" | "direct";
   activeProfile: number;
   profiles: Profile[];
-  wifi: { ssid: string; configured: boolean };
+  wifi: { ssid: string; configured: boolean }[];
   radio: "balanced" | "long_range";
   peers: {
     deviceId: string;
@@ -41,7 +45,6 @@ export interface Config {
   }[];
   activePeer: number;
 }
-const schemaCheck = new Ajv2020({ strict: true }).compile<Config>(configSchema);
 export function checkedConfig(value: unknown): Config {
   if (!schemaCheck(value)) throw Error("Device returned invalid settings");
   const c = value as Config;
@@ -49,15 +52,23 @@ export function checkedConfig(value: unknown): Config {
     throw Error("Active profile does not exist");
   for (const p of c.profiles) {
     if (new TextEncoder().encode(p.name).length > 24)
-      throw Error("Profile names must fit 24 UTF-8 bytes");
-    if (["osc_udp", "udp", "tcp"].includes(p.output) && !p.host)
-      throw Error("Network outputs need a destination host");
-    for (const a of [p.previous, p.next])
-      if (new TextEncoder().encode(a.payload).length > 128)
-        throw Error("Output text must fit 128 UTF-8 bytes");
+      throw Error("Device names must fit 24 UTF-8 bytes");
+    for (const a of [...p.previous, ...p.next]) {
+      if (["osc_udp", "udp", "tcp"].includes(a.type) && !a.host)
+        throw Error("Network actions need a destination host");
+      if (a.type === "cloud" && (a.host !== "api.uberclicker.com" || a.port !== 443))
+        throw Error("Cloud root URL must be https://api.uberclicker.com");
+      if (new TextEncoder().encode(a.payload).length > 128 || a.payload.includes("\0"))
+        throw Error("Action text must fit 128 UTF-8 bytes and contain no null characters");
+
+    }
   }
-  if (new TextEncoder().encode(c.wifi.ssid).length > 32)
-    throw Error("Network name must fit 32 UTF-8 bytes");
+  for (const network of c.wifi) {
+    if (new TextEncoder().encode(network.ssid).length > 32 || network.ssid.includes("\0"))
+      throw Error("Network name must fit 32 UTF-8 bytes and contain no null characters");
+  }
+  if (new Set(c.wifi.map((network) => network.ssid)).size !== c.wifi.length)
+    throw Error("Each Wi-Fi network must have a unique name");
   if (
     c.peers.length > (c.role === "rx" ? 1 : 8) ||
     c.activePeer >= (c.peers.length || 1)
@@ -74,10 +85,11 @@ export type Secret =
   | { op: "keep" | "clear" }
   | { op: "replace"; value: string };
 export interface Secrets {
-  wifi: Secret;
+  wifi: ({ ssid: string } & Secret)[];
   pairs: ({ deviceId: string } & Secret)[];
 }
 export interface Status {
+  cloud?: { room: string; configured: boolean };
   deviceId: string;
   boardId: string;
   firmwareVersion: string;
@@ -90,13 +102,27 @@ export interface Status {
   recoveryRequired?: boolean;
   capabilities: {
     ble_config: boolean;
+    serial_config?: boolean;
+    cloud_output?: boolean;
+    fixed_role?: "tx" | "rx";
     lan_config: boolean;
     setup_hotspot: boolean;
     outputs: string[];
     remote_config?: boolean;
     maxReceivers?: number;
     ota_session?: boolean;
+    physical_recovery?: boolean;
+    broadcast_radio?: boolean;
   };
+}
+export function parseCloudPairing(code: string): { room: string; token: string } {
+  let data: any;
+  try { data = JSON.parse(code); } catch { throw Error("Paste the TX pairing code from UberClicker Companion"); }
+  if (!data || data.v !== 1 || Object.keys(data).sort().join(",") !== "room,token,v" ||
+      typeof data.room !== "string" || !/^[a-f0-9]{32}$/.test(data.room) ||
+      typeof data.token !== "string" || !/^[a-f0-9]{64}$/.test(data.token))
+    throw Error("Invalid TX pairing code");
+  return { room: data.room, token: data.token };
 }
 export type Reply = {
   v: 2;
@@ -241,7 +267,7 @@ export class DeviceSession {
   async refresh() {
     const status = await this.transport.request("status");
     if (
-      status.schemaVersion !== 2 ||
+      status.schemaVersion !== 4 ||
       status.protocolVersion !== 2 ||
       typeof status.deviceId !== "string" ||
       !/^[0-9a-f]{12}$/.test(status.deviceId) ||
@@ -249,7 +275,7 @@ export class DeviceSession {
       typeof status.setup !== "boolean" ||
       !status.capabilities
     )
-      throw Error("Unsupported or malformed device status");
+      throw Error("Unsupported device settings. Update the app and firmware together");
     this.status = status as unknown as Status;
     return this.status;
   }
@@ -257,16 +283,25 @@ export class DeviceSession {
     await this.transport.request("authorize", { token });
     await this.read();
   }
-  async claim(code: string) {
+  async claim(code: string, recover = false) {
     if (!/^\d{6}$/.test(code))
       throw Error("Enter the six-digit code on your clicker");
-    const r = await this.transport.request("claim", { code });
+    const r = await this.transport.request(recover ? "recover" : "claim", { code });
     if (typeof r.token !== "string" || !/^[0-9a-f]{64}$/.test(r.token))
       throw Error("Invalid claim response");
     return r.token;
   }
   async read() {
     this.config = checkedConfig((await this.transport.request("read")).config);
+  }
+  async configureCloud(code: string | null) {
+    if (this.session || this.pendingApply) throw Error("Apply or cancel the current edit before changing the cloud connection");
+    if (!this.status?.capabilities.serial_config || !this.status.capabilities.cloud_output || this.config?.role !== "tx")
+      throw Error("Connect a TX with cloud firmware over USB serial");
+    const credentials = code === null ? { room: "", token: "" } : parseCloudPairing(code);
+    try { await this.transport.request("cloud", credentials); }
+    finally { this.config = undefined; }
+    await this.refresh(); await this.read();
   }
   async begin() {
     if (this.pendingApply)
@@ -321,6 +356,7 @@ export class DeviceSession {
     } catch (e) {
       this.session = undefined;
       this.leaseExpiresAt = undefined;
+      this.config = undefined;
       throw Error(
         `Apply outcome requires reread. ${e instanceof Error ? e.message : "Connection failed"}`,
       );
@@ -330,14 +366,17 @@ export class DeviceSession {
     try {
       if (this.session)
         await this.transport.request("cancel", { session: this.session });
+    } catch (e) {
+      this.config = undefined;
+      throw e;
     } finally {
       this.session = undefined;
       this.leaseExpiresAt = undefined;
     }
   }
   async openUpdateSession() {
-    if (!this.config || !this.status?.setup || !this.status.capabilities.ota_session)
-      throw Error("Reopen physical setup on the local clicker to request updates");
+    if (!this.config || !this.status?.capabilities.serial_config || !this.status.capabilities.ota_session)
+      throw Error("Connect to the local clicker by USB serial to request updates");
     if (this.session || this.pendingApply)
       throw Error("Resolve or cancel the current edit before opening updates");
     const response = await this.transport.request("updates");

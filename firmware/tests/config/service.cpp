@@ -1,3 +1,4 @@
+// Historical BLE/paired-radio suite; current serial-only coverage is local_service.cpp in run.sh.
 // Executes actual config_service.cpp; only BLE/NVS/clock/RNG adapters are fake.
 #include "../../../contracts/config_framing.h"
 #include "config_service.h"
@@ -767,7 +768,65 @@ static void updateSessionTests() {
   testNvs.clear();
   testBlobKeys.clear();
 }
+static void connectionTests() {
+  testNvs.clear();
+  BLEServer server;
+  uc::ConfigService service;
+  assert(service.begin(&server, "aabbccddeeff", "0.1.0"));
+  service.enterSetup();
+  auto input = server.service->characteristics[uc::kConfigWriteUuid];
+  auto output = server.service->characteristics[uc::kConfigNotifyUuid];
+  auto enqueue = [&](uint16_t connection, uint8_t stream) {
+    const char request[] = "{\"v\":2,\"id\":1,\"op\":\"status\"}";
+    uint8_t frame[8 + sizeof(request) - 1] = {0x55, 0x43, 1, stream,
+                                            0, 0, sizeof(request) - 1, 0};
+    memcpy(frame + 8, request, sizeof(request) - 1);
+    input->setValue(frame, sizeof(frame));
+    ble_gap_conn_desc desc{connection, {true, true}};
+    input->callback->onWrite(input, &desc);
+  };
+  auto expectStatus = [&](uint8_t stream) {
+    testMillisStep = 1; // Processing a request can advance the real clock.
+    for (int n = 0; n < 900; ++n)
+      service.poll();
+    testMillisStep = 0;
+    assert(!output->outgoing.empty());
+    uc::ConfigFrames frames;
+    bool complete = false;
+    for (auto &frame : output->outgoing) {
+      assert(frame[3] == stream); // Never send a previous connection's reply.
+      complete = frames.feed(frame.data(), frame.size(), testMillis) == 1;
+    }
+    assert(complete);
+    JsonDocument reply;
+    assert(!deserializeJson(reply, frames.bytes, frames.used));
+    assert(reply["ok"] == true);
+    assert(reply["result"]["deviceId"] == "aabbccddeeff");
+    output->outgoing.clear();
+  };
+  // GATT callbacks can run before the application loop handles authentication.
+  service.onSecurity(1, true, true);
+  enqueue(1, 1);
+  expectStatus(1);
+  for (uint16_t next : {1, 2}) {
+    enqueue(1, 99); // Stale queued work must not cross a connection boundary.
+    service.onDisconnect(1);
+    service.onSecurity(next, true, true);
+    enqueue(next, 2);
+    expectStatus(2);
+  }
+  testNvs.clear();
+  std::cout << "BLE lifecycle: first request and immediate reconnect survive pending cleanup; stale requests discarded\n";
+}
 int main() {
+  connectionTests();
+  {
+    BLEServer server;
+    uc::ConfigService service;
+    BLEService::startSucceeds = false;
+    assert(!service.begin(&server, "aabbccddeeff", "0.1.0", {}));
+    BLEService::startSucceeds = true;
+  }
   remoteTests();
   migrationTests();
   durableAndLeaseTests();

@@ -13,7 +13,7 @@ const index = [];
 const configHeader = await readFile(path.join(root, 'firmware/include/config_service.h'), 'utf8');
 const settingsSchema = Number(configHeader.match(/kConfigSchemaVersion\s*=\s*(\d+)/)?.[1]);
 const configProtocol = Number(configHeader.match(/kConfigProtocolVersion\s*=\s*(\d+)/)?.[1]);
-if (![1, 2].includes(settingsSchema) || configProtocol !== settingsSchema) throw new Error('Review OTA client/schema compatibility before deploying');
+if (![1, 2, 4].includes(settingsSchema) || configProtocol !== (settingsSchema === 1 ? 1 : 2)) throw new Error('Review OTA client/schema compatibility before deploying');
 // The USB partition CSV is also the OTA compatibility contract.
 const types = { app: 0, data: 1, nvs: 2, ota: 0, ota_0: 16, ota_1: 17, coredump: 3 };
 const otaPartitions = (await readFile(path.join(root, 'firmware/partitions.csv'), 'utf8')).split('\n')

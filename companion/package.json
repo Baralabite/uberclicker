@@ -1,0 +1,14 @@
+{
+  "name": "uberclicker-companion",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npm run dev --prefix ../app -- --port 1420 --strictPort",
+    "build": "npm run build --prefix ../app",
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0"
+  }
+}

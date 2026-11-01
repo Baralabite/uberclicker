@@ -1,0 +1,21 @@
+body.sender-mode { background: #2c50c8; padding: 0; overflow: hidden; }
+body.sender-mode #app { height: 100dvh; display: flex; flex-direction: column; }
+body.sender-mode .app-chrome { flex: none; }
+body.sender-mode .app-nav { flex: none; overflow-x: auto; white-space: nowrap; }
+body.sender-mode #page-send { flex: 1; min-height: 0; display: flex; }
+.sender-page { width: 100%; flex: 1; min-height: 0; max-width: none; margin: 0; padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); background: #2c50c8; color: white; display: grid; place-items: center; }
+#link-code-panel { padding: 24px; text-align: center; }
+#link-code { display: block; font-size: clamp(32px, 10vw, 80px); font-weight: 650; letter-spacing: .06em; white-space: nowrap; font-variant-numeric: tabular-nums; }
+#sender-retry { color: #2c50c8; background: white; }
+.cue-buttons { position: relative; width: 100%; height: 100%; min-height: 0; }
+.cue-buttons button { display: grid; place-items: center; margin: 0; padding: 20px; border: 0; border-radius: 0; background: transparent; color: white; touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+.cue-buttons svg { display: block; fill: currentColor; }
+.cue-buttons [data-click="next"] { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(80vw, 64dvh, 500px); height: min(80vw, 64dvh, 500px); max-height: calc(100% - 104px); padding: 0; min-height: 0; }
+.cue-buttons [data-click="next"] svg { width: min(65vw, 52dvh, 420px); max-height: 100%; }
+.cue-buttons [data-click="previous"] { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); width: 64px; height: 64px; padding: 12px; border-radius: 50%; }
+.cue-buttons [data-click="previous"] svg { width: 32px; height: 32px; }
+@media (orientation: landscape) and (max-height: 500px) { .cue-buttons [data-click="previous"] { width: 48px; height: 48px; padding: 8px; bottom: 0; } }
+.cue-buttons button:disabled { opacity: .4; }
+.cue-buttons button:active:not(:disabled) { background: rgb(255 255 255 / .14); }
+.cue-buttons button:focus-visible { outline: 3px solid white; outline-offset: -8px; }
+@media (prefers-reduced-motion: no-preference) { .cue-buttons button { transition: background-color 80ms; } }

@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="32 32 192 192">
+  <!-- Arrow geometry from icon.svg, with transparent padding for the macOS menu bar. -->
+  <path d="M112 68 44 128l68 60zm32 0v120l68-60z" fill="#000"/>
+</svg>

@@ -3,20 +3,31 @@
 A rounded rectangular block with the convex hull of the M5's base subtracted, and
 an actual USB-C cable plug rising through the middle of each pocket. Two bays
 are the default, with opposed M3 screws retaining each plug. This revision
-is for reviewing the shape before taking measurements. **Fit and charging are
-unvalidated.**
+uses the user's measured 52.2 mm body width and 24.6 mm maximum lower-body thickness. **Printed fit and
+charging are unvalidated; the remaining dimensions still need measurement.**
 
 ![Two-bay shape concept with recessed plug-clamp screws](../cad/previews/dock-concept-2-bay.png)
 
-Open [charging-dock.scad](../cad/charging-dock.scad) directly in OpenSCAD and press
-F5/F6. Default `part="assembly"` shows the block and a silver reference USB plug.
-Set `part="dock"` to export just the printed plastic, or `part="coupon"` for a
+Open [charging-dock.scad](../cad/charging-dock.scad) directly with OpenSCAD's
+File → Open command and press F5/F6. The short main file contains the settings and
+includes [lib/dock-geometry.scad](../cad/lib/dock-geometry.scad); keep that supporting
+file alongside it in the `lib/` folder. Open the saved main file instead of pasting
+a partial preview into the editor.
+
+Default `part="dock"` shows just the printable plastic. Set `part="assembly"`
+to show the reference plugs, screws and cables, or `part="coupon"` for a
 5 mm tall ring checking the pocket outline. `bays=2` is the default;
 `bays=1` produces a single pocket. `show_device=true` adds transparent body
 envelopes in F5 preview.
 
 The pocket uses `hull()` around four vertical cylinders, giving a rounded
-rectangular outline. Its fit profile, straight walls and flat floor are unchanged.
+rectangular outline, using the measured lower-body width/depth with 0.3 mm clearance per side.
+It retains straight walls and a flat floor.
+The lower section reaches 24.6 mm thickness at 21.3 mm above the device bottom,
+before the case deepens around the screen. The 14 mm pocket stays below that
+transition and uses a straight maximum envelope. The actual taper has not yet
+been modelled; the bottom thickness/radii still need measurement. A guard rejects
+a pocket deeper than 21.3 mm with this lower-body profile.
 The exterior has rounded vertical corners and tapers inward from a wider flat
 base to the original top dimensions. There are no separate
 cradle rails, carrier, labels or bottom cover. A hole under each pocket
@@ -40,9 +51,9 @@ dock's bottom face instead of letting springback push it against the table.
 
 The near tab projects from the left wall and the far tab from the right wall.
 The tabs are **3 mm thick**, with **4 mm wide tips and 6 mm wide flared roots**.
-They are **14.11 mm apart center-to-center**, with a **10.11 mm gap between their
+They are **13.95 mm apart center-to-center**, with a **9.95 mm gap between their
 tip edges**. The roots flare into the space between the tabs, spreading the
-attachment into the wall while leaving 6.11 mm between the wider roots.
+attachment into the wall while leaving 5.95 mm between the wider roots.
 Tuck the cable under one
 tab, then the other, using the opposite-side loading gaps. Each loading gap is
 4.5 mm for the assumed 4 mm cable. Both ledges extend 0.5 mm past the center so
@@ -80,16 +91,23 @@ still needs a physical test.
 
 All dimensions are millimetres. X is left/right, +Y is rear, +Z is up.
 
+The confirmed USB datum is **13.2 mm from the back body face**, superseding the
+earlier rough front/back estimates. Using the lower-body 24.6 mm thickness and
+the same rear-face datum, this is 11.4 mm from the front and
+`port_y = 24.6/2 - 13.2 = -0.9 mm`, toward
+the screen/front. Change `port_from_back` directly when refining that measurement.
+
 | Parameter | Default | Meaning |
 | --- | --- | --- |
-| `device_w`, `device_d` | 51.6, 26.3 | M5 base width/depth |
+| `device_w`, `device_d` | 52.2, 24.6 | User-measured width and maximum lower-body thickness |
+| `lower_body_h` | 21.3 | Highest pocket seating depth supported by this lower-body profile |
 | `corner_r` | 4 | Assumed base corner radius in plan view |
-| `clearance` | 0.3 per side | Intended snug sliding fit; actual pocket 52.2 × 26.9 |
+| `clearance` | 0.3 per side | Intended snug sliding fit; actual pocket 52.8 × 25.2 |
 | `pocket_depth` | 14 | How far the device sits into the block; check side button clearance |
 | `wall` | 6 | Block thickness around the pocket |
 | `floor_z` | 34 | Device support plane; includes room for the cable bend |
 | `outer_r`, `base_scale` | 4, 1.25 | Top exterior corner radius and bottom width/depth multiplier |
-| `port_x`, `port_y` | 0, 0 | Port center relative to device center |
+| `port_x`, `port_from_back` | 0, 13.2 | Lateral center offset and distance from rear body face; derived `port_y=-0.9` |
 | `plug_w`, `plug_d`, `plug_body_h` | 12, 7, 16 | Assumed real cable's overmould dimensions |
 | `socket_w`, `socket_d` | 16, 9 | Maximum nominal plug-body envelope; stays fixed for smaller cables |
 | `plug_clearance` | 0.2 per side | Clearance around the plug and metal opening |
@@ -103,14 +121,15 @@ All dimensions are millimetres. X is left/right, +Y is rear, +Z is up.
 | `screw_l`, `screw_clear` | 10, 3.4 | M3 screw under-head length (at most 10) and through-hole diameter |
 | `insert_web`, `access_d` | 0.8, 7 | Plastic before the cavity and recessed tool/head access diameter |
 
-Default two-bay top: **122.4 × 38.9 mm**; bottom footprint: **153 × 48.625 mm**;
+Default two-bay top: **123.6 × 37.2 mm**; bottom footprint: **154.5 × 46.5 mm**;
 height: **48 mm**. The bottom is 25% wider and deeper than the top. The one-bay
-top is **64.2 × 38.9 mm**, with an **80.25 × 48.625 mm** bottom, also 48 mm tall.
+top is **64.8 × 37.2 mm**, with an **81 × 46.5 mm** bottom, also 48 mm tall.
 The top outside corner radius is 4 mm, growing to 5 mm at the base. The device
-pocket remains 52.2 × 26.9 mm with the same radius, depth and USB position.
+pocket is 52.8 × 25.2 mm. Corner radius, seating depth and plug height still need
+physical verification.
 
-The exterior slopes inward by about 17.7 degrees from vertical across the two-bay
-width, and 5.8 degrees across the depth. Each layer stays inside the previous
+The exterior slopes inward by about 17.8 degrees from vertical across the two-bay
+width, and 5.5 degrees across the depth. Each layer stays inside the previous
 layer, with a flat bed face and no curved underside that would need support.
 The body rests on the pocket floor. Match plug height to the measured socket so
 the connector does not become the device's support.
@@ -128,7 +147,9 @@ provides the 82 × 51.6 × 26.3 mm size (printed page 4) and shows a bottom-faci
 Type-C port (printed page 1). It does not dimension the base profile, port location
 or cable plug. Accessory inclusion in the size is unspecified. The
 [official wiki](https://www.elecrow.com/wiki/ThinkNode_M5_Meshtastic_LoRa_Signal_Transceiver_ESP32-S3.html)
-is the companion reference. All other dimensions above are prototype assumptions.
+is the companion reference. The user's caliper width/depth above supersede the
+published width/depth for this prototype. Corner/taper, connector envelope,
+insert fit and other unmeasured defaults remain assumptions.
 
 Run `python3 cad/build.py` to regenerate the [STLs](../cad/exports/) and previews.
 It uses installed OpenSCAD and standard-library Python. Each dock/coupon mesh is
@@ -143,9 +164,10 @@ and connect to the channel wall. The cable-exit roof uses 45-degree shoulders,
 with only about 1.13 mm between its crown tangent points. The small rounded crown,
 plug opening and screw bores still need bridging review; inspect these in the slicer and test the printer's
 bridging before calling the whole print support-free. Keep the cable space above
-the tabs clear of trapped support material. The fit coupon is unchanged.
+the tabs clear of trapped support material. The fit coupon uses the same measured
+body dimensions and clearance as the dock.
 
-Physical measurements, clamp grip/insert fit, printing/supports, button clearance,
+Remaining physical measurements, clamp grip/insert fit, printing/supports, button clearance,
 cable bend/strain relief, stability and charging tests are deferred until the
 shape is approved. No charging electronics are included; a real cable would feed
 the M5's built-in charger.

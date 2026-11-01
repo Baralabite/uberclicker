@@ -23,4 +23,10 @@ inline int xQueueReceive(QueueHandle_t q, void *p, int) {
   q->items.pop_front();
   return 1;
 }
+inline int xQueuePeek(QueueHandle_t q, void *p, int) {
+  if (q->items.empty())
+    return 0;
+  memcpy(p, q->items.front().data(), q->itemSize);
+  return 1;
+}
 inline void xQueueReset(QueueHandle_t q) { q->items.clear(); }

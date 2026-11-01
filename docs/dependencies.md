@@ -23,6 +23,7 @@ signing keys, encrypted firmware, secure boot or installation lock is introduced
 | Adafruit GFX | 1.12.4 | BSD; https://github.com/adafruit/Adafruit-GFX-Library |
 | Adafruit BusIO | 1.17.4 | MIT; https://github.com/adafruit/Adafruit_BusIO |
 | ArduinoJson | 7.4.2 | MIT; https://github.com/bblanchon/ArduinoJson |
+| WebSockets for Arduino | 2.7.2 | LGPL-2.1-or-later; https://github.com/Links2004/arduinoWebSockets |
 | Arduino ESP32 core | 3.3.11 via pioarduino 55.03.311 | Per-file LGPL-2.1-or-later/Apache-2.0 and retained third-party terms; https://github.com/espressif/arduino-esp32 |
 | ESP-IDF/mbedTLS and vendor SDK | Pinned platform's ESP32-S3 SDK | Apache-2.0 and retained third-party terms; https://github.com/espressif/esp-idf |
 | esptool-js installer | 0.7.0 | Apache-2.0; https://github.com/espressif/esptool-js |
@@ -30,8 +31,13 @@ signing keys, encrypted firmware, secure boot or installation lock is introduced
 
 The browser installer retains local esptool-js/pako licenses in
 `website/dist/flash/vendor/`. The approved website retains Three.js MIT and Barlow
-SIL OFL notices in its `vendor/` and `assets/` directories. Capacitor, the BLE plugin
+SIL OFL notices in its `vendor/` and `assets/` directories. Capacitor, the haptics plugin
 and secure storage package retain their npm/native license texts; app artifact
 packaging supplies a companion notices file. The build tools (PlatformIO,
 TypeScript, Vite, compilers, Android SDK and Xcode) are separate dependencies,
 not project-authored software or a claim of store publication.
+
+The shared app also includes the MIT-licensed `@capacitor/app` lifecycle plugin
+and `@tauri-apps/api`; generated npm notices include their license texts.
+Desktop USB access uses `serialport` 4.10.1 (MPL-2.0), with unmodified upstream
+source available from https://crates.io/crates/serialport/4.10.1.

@@ -1,5 +1,37 @@
 # Website deployment
 
+## Current Cloudflare production — 1 November 2026
+
+- Marketing: [uberclicker.com](https://uberclicker.com) and [www.uberclicker.com](https://www.uberclicker.com), served by `uberclicker-website`.
+- App/accounts: [app.uberclicker.com](https://app.uberclicker.com), served by `uberclicker-cloud` with D1, Durable Objects and Cloudflare Email Service.
+- Relay: `wss://api.uberclicker.com`; active Pro entitlement required per destination.
+- Pricing: AUD $3/month or $25/year with one calendar month free. Stripe Checkout, signed webhooks and customer portal are configured. The user confirmed live magic-link sign-in and Checkout.
+- The Login button links to the account app; old `/app` links redirect to device setup there.
+
+The apex A and www CNAME records are now **proxied** through Cloudflare. Worker routes `uberclicker.com/*` and `www.uberclicker.com/*` serve the new assets without contacting the legacy GitHub origin. Preserve email DNS records. Normal HTTPS requests to both domains returned HTTP 200; certificate verification was not bypassed.
+
+Production deployment is manual from this workspace:
+
+```sh
+npm ci --prefix app
+npm ci --prefix cloud
+node scripts/build-website.mjs
+node website/check.mjs
+npm run check --prefix cloud
+npm test --prefix cloud
+(cd cloud && npx wrangler d1 migrations apply uberclicker-accounts --remote && npm run deploy)
+./cloud/node_modules/.bin/wrangler deploy --config website/wrangler.jsonc
+```
+
+Secrets are encrypted in the Worker, not in this repository. See [cloud setup](cloud.md) for auth/Stripe configuration. Google sign-in awaits OAuth credentials. GitHub Actions' existing Pages job still builds/mirrors legacy assets; pushing source alone does not update Cloudflare. No new CI deployment credential was created.
+
+Validation: the shared app suite passed 35 tests; all 10 backend checks passed across the full run and an isolated rerun. One idle-heartbeat check timed out once in the local emulator and passed when rerun alone. Live signed Stripe delivery after a completed subscription and renewal charging remain untested; Checkout itself was user-verified.
+
+## Historical GitHub Pages deployment (superseded)
+
+The notes below record the previous hosting setup and its old HTTPS limitation; they are not the current production configuration.
+
+
 The public repository is [Baralabite/uberclicker](https://github.com/Baralabite/uberclicker). The website was deployed and verified at [GitHub Pages](https://baralabite.github.io/uberclicker/) on 29 October 2026. The user then confirmed preserving **uberclicker.com** for domain hookup; the Pages address now redirects there. Custom-domain DNS propagation and HTTPS remain pending. Device design remains under review. The project operates noncommercially under the MIT license.
 
 GitHub Actions publishes `website/dist` on pushes to `main` and after successful

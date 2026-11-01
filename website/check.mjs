@@ -19,7 +19,6 @@ function node(selector) {
   if (!nodes.has(selector)) nodes.set(selector, { textContent: '', events: {}, addEventListener(type, handler) { this.events[type] = handler; } });
   return nodes.get(selector);
 }
-const radios = ['ble', 'lan', 'linked'].map(value => ({ ...node(value), value }));
 const buyLists = [...html.matchAll(/<ul id="(buy-[^"]+)"[^>]*>([\s\S]*?)<\/ul>/g)].map(([, id, body]) => {
   assert.equal([...body.matchAll(/<a href="https:\/\//g)].length, 3, `${id} needs three product links`);
   return Object.assign(node(`#${id}`), { id });
@@ -29,7 +28,7 @@ assert.match(html, /<option value="buy-au" selected>Australia<\/option>/, 'Austr
 node('#buy-country').value = 'buy-au';
 const document = {
   querySelector: node,
-  querySelectorAll: selector => selector === '.buy-options' ? buyLists : radios
+  querySelectorAll: selector => selector === '.buy-options' ? buyLists : []
 };
 vm.runInNewContext(readFileSync(path.join(root, 'app.js'), 'utf8'), { document, setTimeout() {} });
 node('#next-cue').events.click();
@@ -37,10 +36,10 @@ assert.equal(node('#last-action').textContent, 'Last: Next');
 assert.match(node('#last-receipt').textContent, /simulated/);
 node('#previous-cue').events.click();
 assert.equal(node('#last-action').textContent, 'Last: Previous');
-radios[1].events.change();
-assert.match(node('#connection-detail').textContent, /LAN configuration is unavailable/);
-radios[2].events.change();
-assert.match(node('#connection-detail').textContent, /alone does not make a device reachable/);
+assert.match(html, /href="https:\/\/app\.uberclicker\.com\/#configure"/);
+assert.doesNotMatch(html, /name="connection"/, 'Setup links directly to the app instead of offering unavailable transports');
+assert.doesNotMatch(html, /Claim and configure|Local BLE setup|No acknowledgement yet/);
+assert.match(node('#last-receipt').textContent, /Broadcast/);
 assert(!/023|82%|LoRa paired|cue-count/.test(html), 'No invented device status or cue counter');
 assert.deepEqual(buyLists.filter(list => !list.hidden).map(list => list.id), ['buy-au']);
 for (const region of ['buy-nz', 'buy-us', 'buy-eu', 'buy-au']) {
@@ -48,4 +47,4 @@ for (const region of ['buy-nz', 'buy-us', 'buy-eu', 'buy-au']) {
   node('#buy-country').events.change();
   assert.deepEqual(buyLists.filter(list => !list.hidden).map(list => list.id), [region], 'Only the selected region is shown');
 }
-console.log('Pass: local assets, anchors, unique ids, sample actions, connection choices, truthful demo status, buying regions and three links per region.');
+console.log('Pass: local assets, anchors, unique ids, sample actions, direct setup links, truthful demo status, buying regions and three links per region.');

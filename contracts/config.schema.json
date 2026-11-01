@@ -1,14 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://uberclicker.com/contracts/config.schema.json",
-  "title": "UberClicker readable configuration v2",
+  "title": "UberClicker readable configuration v4",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "schemaVersion",
     "revision",
     "role",
-    "route",
     "activeProfile",
     "profiles",
     "wifi",
@@ -18,7 +17,7 @@
   ],
   "properties": {
     "schemaVersion": {
-      "const": 2
+      "const": 4
     },
     "revision": {
       "type": "integer",
@@ -26,10 +25,10 @@
       "maximum": 4294967294
     },
     "role": {
-      "enum": ["tx", "rx"]
-    },
-    "route": {
-      "enum": ["lora", "direct"]
+      "enum": [
+        "tx",
+        "rx"
+      ]
     },
     "activeProfile": {
       "type": "integer",
@@ -43,145 +42,60 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["name", "output", "host", "port", "previous", "next"],
+        "required": [
+          "name",
+          "previous",
+          "next"
+        ],
         "properties": {
           "name": {
             "type": "string",
             "minLength": 1,
             "maxLength": 24
           },
-          "output": {
-            "enum": ["ble_keyboard", "ble_midi", "osc_udp", "udp", "tcp"]
-          },
-          "host": {
-            "type": "string",
-            "maxLength": 63,
-            "pattern": "^[A-Za-z0-9.-]*$"
-          },
-          "port": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 65535
-          },
           "previous": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["key", "modifiers", "midi", "osc", "payload"],
-            "properties": {
-              "key": {
-                "type": "integer",
-                "minimum": 0,
-                "maximum": 101
-              },
-              "modifiers": {
-                "type": "integer",
-                "minimum": 0,
-                "maximum": 255
-              },
-              "midi": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": ["type", "channel", "number", "value"],
-                "properties": {
-                  "type": {
-                    "enum": ["note", "cc", "program"]
-                  },
-                  "channel": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 16
-                  },
-                  "number": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 127
-                  },
-                  "value": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 127
-                  }
-                }
-              },
-              "osc": {
-                "type": "string",
-                "pattern": "^/[A-Za-z0-9_/-]{0,63}$"
-              },
-              "payload": {
-                "type": "string",
-                "maxLength": 128
-              }
+            "type": "array",
+            "maxItems": 8,
+            "items": {
+              "$ref": "#/$defs/action"
             }
           },
           "next": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["key", "modifiers", "midi", "osc", "payload"],
-            "properties": {
-              "key": {
-                "type": "integer",
-                "minimum": 0,
-                "maximum": 101
-              },
-              "modifiers": {
-                "type": "integer",
-                "minimum": 0,
-                "maximum": 255
-              },
-              "midi": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": ["type", "channel", "number", "value"],
-                "properties": {
-                  "type": {
-                    "enum": ["note", "cc", "program"]
-                  },
-                  "channel": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 16
-                  },
-                  "number": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 127
-                  },
-                  "value": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 127
-                  }
-                }
-              },
-              "osc": {
-                "type": "string",
-                "pattern": "^/[A-Za-z0-9_/-]{0,63}$"
-              },
-              "payload": {
-                "type": "string",
-                "maxLength": 128
-              }
+            "type": "array",
+            "maxItems": 8,
+            "items": {
+              "$ref": "#/$defs/action"
             }
           }
         }
       }
     },
     "wifi": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["ssid", "configured"],
-      "properties": {
-        "ssid": {
-          "type": "string",
-          "maxLength": 32
-        },
-        "configured": {
-          "type": "boolean"
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ssid",
+          "configured"
+        ],
+        "properties": {
+          "ssid": {
+            "type": "string",
+            "maxLength": 32,
+            "minLength": 1
+          },
+          "configured": {
+            "type": "boolean"
+          }
         }
       }
     },
     "radio": {
-      "enum": ["balanced", "long_range"]
+      "enum": [
+        "balanced",
+        "long_range"
+      ]
     },
     "peers": {
       "type": "array",
@@ -190,7 +104,12 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["deviceId", "pairId", "name", "adminAuthorized"],
+        "required": [
+          "deviceId",
+          "pairId",
+          "name",
+          "adminAuthorized"
+        ],
         "properties": {
           "deviceId": {
             "type": "string",
@@ -235,5 +154,100 @@
         }
       }
     }
-  ]
+  ],
+  "$defs": {
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "enabled",
+        "host",
+        "port",
+        "key",
+        "modifiers",
+        "midi",
+        "osc",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "lora",
+            "ble_keyboard",
+            "ble_midi",
+            "osc_udp",
+            "udp",
+            "tcp",
+            "cloud"
+          ]
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "host": {
+          "type": "string",
+          "maxLength": 63,
+          "pattern": "^[A-Za-z0-9.-]*$"
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "key": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 101
+        },
+        "modifiers": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "midi": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "channel",
+            "number",
+            "value"
+          ],
+          "properties": {
+            "type": {
+              "enum": [
+                "note",
+                "cc",
+                "program"
+              ]
+            },
+            "channel": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 16
+            },
+            "number": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 127
+            },
+            "value": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 127
+            }
+          }
+        },
+        "osc": {
+          "type": "string",
+          "pattern": "^/[A-Za-z0-9_/-]{0,63}$"
+        },
+        "payload": {
+          "type": "string",
+          "maxLength": 128
+        }
+      }
+    }
+  }
 }
