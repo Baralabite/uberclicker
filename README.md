@@ -1,6 +1,6 @@
 # UberClicker
 
-**Current working tree:** one-way radio and USB serial-only setup. Update TX and RX together; older release pairing instructions do not apply. Hardware acceptance is pending.
+**Current implementation:** one-way radio and USB serial-only setup. Update TX and RX together; older release pairing instructions do not apply. Hardware acceptance is pending.
 
 **Earlier experimental release:** [v0.2.0-experimental.1](https://github.com/Baralabite/uberclicker/releases/tag/v0.2.0-experimental.1)
 contains the multi-receiver firmware, browser/native app builds and verified

@@ -1,8 +1,8 @@
-import {execFileSync} from 'node:child_process';
+import {execSync} from 'node:child_process';
 import {readFileSync,readdirSync,writeFileSync,mkdirSync} from 'node:fs';
 import path from 'node:path';
 const root=process.cwd();
-const dependencies=execFileSync(process.platform==='win32'?'npm.cmd':'npm',['ls','--omit=dev','--parseable'],{encoding:'utf8'}).trim().split('\n').filter(p=>path.resolve(p)!==root);
+const dependencies=execSync('npm ls --omit=dev --parseable',{encoding:'utf8'}).trim().split('\n').filter(p=>path.resolve(p)!==root);
 const notices=['UberClicker dependency notices\nProject: MIT (see LICENSE). Dependency licenses follow.\n'];
 for(const directory of dependencies.sort()){
  const meta=JSON.parse(readFileSync(path.join(directory,'package.json'),'utf8'));

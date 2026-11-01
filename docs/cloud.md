@@ -39,7 +39,7 @@ Alternatively, choose **Copy link** on a channel and open the signed link on the
 
 The Cue Remote table shows **Last seen**, newest first. It refreshes while the portal is visible and no form is being edited. Browser heartbeats contribute to presence; M5 activity reflects its latest connection, clock sync, click, or disconnect.
 
-The new linking flow requires migrations `0003_clickers.sql` and `0004_clicker_links.sql`, the `CLICKERS` Durable Object binding/migration, and matching Worker/app/firmware releases. These changes have been validated locally; they have not been deployed or flashed as part of this UI work.
+The new linking flow uses migrations `0003_clickers.sql` and `0004_clicker_links.sql`, the `CLICKERS` Durable Object binding/migration, and matching Worker/app/firmware releases. The migrations, Worker and web app were deployed on 1 November 2026. Live registration, pairing and recovery after offline revocation passed smoke checks. No hardware was flashed; native apps require installation of the updated builds.
 
 Each channel has its own subscription and calendar-month trial. Payment method required; subscriptions renew automatically. The top-right avatar contains **Edit display name**, **Billing** and **Sign out**. Billing opens Stripe's portal in a new tab for payment details and cancellation at period end. **Revoke** immediately disconnects the channel, expires unfinished checkouts and stops renewal. Pairing tokens cannot be recovered after their initial display; revoke and replace a channel if its codes are lost or exposed.
 

@@ -25,7 +25,15 @@ npm test --prefix cloud
 
 Secrets are encrypted in the Worker, not in this repository. See [cloud setup](cloud.md) for auth/Stripe configuration. Google sign-in awaits OAuth credentials. GitHub Actions' existing Pages job still builds/mirrors legacy assets; pushing source alone does not update Cloudflare. No new CI deployment credential was created.
 
-Validation: the shared app suite passed 35 tests; all 10 backend checks passed across the full run and an isolated rerun. One idle-heartbeat check timed out once in the local emulator and passed when rerun alone. Live signed Stripe delivery after a completed subscription and renewal charging remain untested; Checkout itself was user-verified.
+The simplification update was deployed on 1 November 2026 from commit `dbc7962`:
+
+- Cloud Worker version: `a9e96e09-ffbf-4790-9e01-cb7d7277f389`.
+- Website Worker version: `e9d631ea-17ec-4da5-86eb-b52768167bde`.
+- D1 migrations `0003_clickers.sql` and `0004_clicker_links.sql` applied successfully.
+- App, apex/www website, application bundle, installer validator and release index returned HTTP 200 and matched local bytes. Native registration preflight returned HTTP 204 with the required CORS headers.
+- Live clicker registration, browser-authenticated pairing and offline-revocation recovery passed. The temporary unclaimed smoke-test record was removed.
+
+Validation: 48 shared-app tests, 17 cloud tests, 21 desktop tests, 13 installer/mirror tests and 13 release-packaging tests passed. Firmware host/configuration/UI/OTA checks passed, and all three firmware build variants succeeded. Android debug, unsigned iOS simulator and macOS Companion packages built locally; both phone builds also passed GitHub Actions. One local OS-login-registration test remained intentionally ignored. Physical hardware, signed iPhone/store distribution, live Stripe renewal charging and signed webhook delivery after a completed subscription remain untested; Checkout itself was user-verified.
 
 ## Historical GitHub Pages deployment (superseded)
 
