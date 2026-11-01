@@ -111,3 +111,12 @@ body:has(#page-account:not([hidden]) .account-signin) { background: var(--accent
 .channels-table tr[data-channel]:hover { background: #e8eefc; }
 
 .channels-table .manual-link { display: block; min-height: 44px; padding: 12px 0; color: var(--accent); }
+
+.signin-code { width: min(100%, 460px); }
+.signin-code h1 { color: inherit; }
+.signin-code p { overflow-wrap: anywhere; }
+.signin-code .login-panel { width: 100%; }
+.signin-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+.signin-actions button { background: transparent; color: inherit; border: 1px solid currentColor; }
+.account-signin:has(.signin-code) { align-content: center; gap: 20px; }
+.account-signin:has(.signin-code) .account-message { position: static; transform: none; grid-row: 2; width: min(100%, 460px); }

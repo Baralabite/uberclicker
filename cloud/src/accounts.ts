@@ -39,13 +39,14 @@ export async function accounts(request: Request, env: Env): Promise<Response> {
     return json({ ok: true });
   }
   if (path === "/api/billing/checkout" && request.method === "POST") {
-    const { interval, room } = await request.json<{ interval: string; room: string }>();
-    return json({ url: await env.BILLING.get(env.BILLING.idFromName(user.id)).checkout(user, interval, room) });
+    const { interval, room, desktop } = await request.json<{ interval: string; room: string; desktop?: boolean }>();
+    return json({ url: await env.BILLING.get(env.BILLING.idFromName(user.id)).checkout(user, interval, room, desktop === true) });
   }
   if (path === "/api/billing/portal" && request.method === "POST") {
     const billing = await getBilling(env, user.id);
     if (!billing?.customer_id) return json({ error: "No billing account yet" }, 400);
-    return json({ url: (await stripe(env).billingPortal.sessions.create({ customer: billing.customer_id, return_url: `${env.APP_ORIGIN}/#account` })).url });
+    const { desktop } = await request.json<{ desktop?: boolean }>();
+    return json({ url: (await stripe(env).billingPortal.sessions.create({ customer: billing.customer_id, return_url: `${env.APP_ORIGIN}/${desktop === true ? "desktop-billing" : "#account"}` })).url });
   }
   if (path === "/v1/rooms" && request.method === "POST") {
     const count = await env.DB.prepare("SELECT COUNT(*) AS total FROM rooms WHERE user_id = ?").bind(user.id).first<{ total: number }>();

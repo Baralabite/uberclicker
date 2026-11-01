@@ -6,6 +6,36 @@ UI review and physical hardware acceptance. CI and serial mocks do not establish
 a successful hardware flash. Do not flash a connected device without its owner's
 approval.
 
+## Desktop Companion installation
+
+Open **Install** in Companion on macOS, Windows or Linux. The native USB bridge
+works without browser Web Serial, Python or PlatformIO. Connect a USB data cable,
+disconnect any session in **Configure**, then refresh and select the intended USB
+device. Confirm the physical board, choose a prerelease and installation mode,
+then **Verify downloads & connect**. Review the ready state before **Write firmware**.
+
+Companion reads published firmware releases directly from GitHub, using GitHub's
+manifest SHA-256 digest and the image hashes in that manifest. Only public
+prereleases with a completed, hashed manifest asset appear. **Refresh releases**
+loads new builds or retries after a network error; GitHub's unauthenticated API
+rate limit can temporarily prevent loading. The browser installer still uses the
+website mirror, which must be deployed separately to Cloudflare production.
+
+The desktop and browser installers use the same pinned flashing engine and safety
+checks: ESP32-S3/4 MB detection, exact partition matching for Keep settings,
+explicit consent for full erase, and SHA-256 read-back verification. Configure and
+Install share exclusive native serial ownership. A failed connection or write
+requires an explicit retry; never unplug during writing. No physical flash has
+been validated by these software tests.
+
+The installer uses configurable firmware. After installation, use **Configure**
+to select Transmitter or Receiver. For a role fixed in firmware, use the release's
+`thinknode-m5-tx.zip` or `thinknode-m5-rx.zip` with the command-line recovery
+instructions below. Each archive contains a complete, independent image set,
+manifest (`firmwareRole: tx` or `rx`), checksums, source and licenses. Extract one
+archive and use only its images and offsets. Installing configurable firmware over
+a fixed-role build removes the role lock while preserving compatible settings.
+
 ## Flash locally as TX or RX
 
 From the repository root, with PlatformIO installed and the intended device
@@ -168,9 +198,15 @@ PY
 
 ## Release pipeline
 
-Pull requests and main build a clean public PlatformIO candidate, run package and
-flasher checks, and retain downloadable CI artifacts. An explicit semantic prerelease
-tag such as `v0.1.0-experimental.1` builds and publishes a GitHub prerelease.
+Pull requests, main pushes and manual runs build all three PlatformIO variants:
+configurable, fixed TX and fixed RX. Package, host and flasher checks must pass
+before downloadable artifacts are retained. Main pushes and manual runs on main
+publish a GitHub prerelease tagged `v0.1.0-ci.<run-number>.<run-attempt>`; attempts
+use distinct versions to avoid replacing published bytes. An explicit semantic
+prerelease tag such as `v0.1.0-experimental.1` also builds and publishes a release.
+Pull requests never publish releases. Assets are uploaded to a draft before it
+becomes public. The top-level manifest/images are configurable firmware; TX/RX
+packages are separate ZIP assets with their own manifests and source.
 The version excluding `v` must fit the 31-character ESP application descriptor. Plain
 stable tags are rejected until hardware acceptance and a reviewed promotion change.
 The manifest records board/chip/flash, source commit, firmware/settings/config/radio
@@ -181,8 +217,9 @@ Pages reconstructs a same-origin mirror from every published prerelease, checks
 each downloaded image, rejects changed bytes at an existing version path, and
 records the manifest hash in `flash/releases/index.json`. All prior published
 versions remain selectable. GitHub release download CORS is not assumed. Build
-failure blocks release; mirror failure blocks deployment. A release may exist
-briefly before its Pages mirror is available.
+failure blocks release; mirror failure blocks deployment. Companion can use a release as soon as it is published. Browser/OTA availability
+depends on deploying the mirror: the existing Pages workflow does this for legacy
+hosting, while the live Cloudflare website currently requires a separate deployment.
 
 Local checks (no device access):
 

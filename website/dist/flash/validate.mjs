@@ -9,6 +9,7 @@ export function validateManifest(m) {
       m.board !== BOARD || m.chip !== 'esp32s3' || m.flashSize !== 4194304 ||
       !/^[0-9a-f]{40}$/.test(m.sourceCommit) || m.sourceDirty !== false || m.hardwareValidated !== false ||
       ![1, 2, 4].includes(m.settingsSchemaVersion) || m.configProtocolVersion !== (m.settingsSchemaVersion === 1 ? 1 : 2) || m.radioProtocolVersion !== 1) fail('Unsupported release metadata.');
+  if (m.firmwareRole !== undefined && !['configurable', 'tx', 'rx'].includes(m.firmwareRole)) fail('Unsupported firmware role.');
   if (m.settingsSchemaVersion === 4 && (m.configTransport !== 'usb_serial' || m.radioMode !== 'broadcast' ||
       m.bleFramingVersion !== 0 || m.remoteConfigRadioVersion !== 0 ||
       JSON.stringify(m.preserveSettingsSchemas) !== '[1,2,3,4]' || m.settingsMigration !== 'atomic-on-apply-v1-v3-to-v4')) fail('Unsupported v4 migration or transport.');

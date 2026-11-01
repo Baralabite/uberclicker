@@ -10,7 +10,7 @@ export class BillingAccount extends DurableObject<Env> {
   async revoke(user: string, room: string): Promise<void> {
     return this.ctx.blockConcurrencyWhile(() => revokeDestination(this.env, user, room));
   }
-  async checkout(user: { id: string; email: string }, interval: string, room: string): Promise<string | null> {
-    return this.ctx.blockConcurrencyWhile(() => checkout(this.env, user, interval, room));
+  async checkout(user: { id: string; email: string }, interval: string, room: string, desktop = false): Promise<string | null> {
+    return this.ctx.blockConcurrencyWhile(() => checkout(this.env, user, interval, room, desktop));
   }
 }

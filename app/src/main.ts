@@ -4,9 +4,11 @@ import { mountAccount } from "./account";
 import { mountReceiver } from "./receiver";
 import { mountSender } from "./sender";
 import "./style.css";
+import { mountInstall } from "./install";
 import { mountManual } from "./manual";
 
 const screens: Record<Page, { label: string; className: string; mount: (root: HTMLDivElement) => void }> = {
+  install: { label: "Install", className: "", mount: mountInstall },
   account: { label: "Cloud", className: "", mount: mountAccount },
   configure: { label: "Configure", className: "device-setup", mount: mountSetup },
   receive: { label: "Listen", className: "cloud-receiver", mount: mountReceiver },
@@ -44,7 +46,10 @@ function mountApp() {
 
 }
 const manual = /^\/manual\/([a-f0-9]{32})\/?$/.exec(location.pathname);
-if (manual) {
+if (location.pathname === "/desktop-billing") {
+  document.querySelector<HTMLDivElement>("#app")!.innerHTML = `<main><h1>Return to UberClicker Companion</h1><p>You can close this browser tab. Companion will refresh your channel’s plan when you return to the app.</p></main>`;
+}
+else if (manual) {
   const root = document.querySelector<HTMLDivElement>("#app")!;
   root.innerHTML = `${appChrome(true)}<div id="page-manual"></div>`;
   const avatar = root.querySelector<HTMLButtonElement>("#account-avatar")!;

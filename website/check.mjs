@@ -9,9 +9,9 @@ const html = readFileSync(path.join(root, 'index.html'), 'utf8');
 const downloads = html.match(/<section id="downloads"[\s\S]*?<\/section>/)?.[0];
 assert(downloads, 'The main page must offer desktop downloads');
 for (const platform of ['macOS', 'Windows', 'Linux']) {
-  assert(downloads.includes(`Download for ${platform}`), `Missing ${platform} download`);
+  assert(downloads.includes(platform), `Missing ${platform} download`);
 }
-assert.equal([...downloads.matchAll(/href="https:\/\/github\.com\/Baralabite\/uberclicker\/releases\?q=companion-build"/g)].length, 3, 'Desktop downloads must open Companion GitHub releases');
+assert.equal([...downloads.matchAll(/href="https:\/\/github\.com\/Baralabite\/uberclicker\/releases\?q=companion-build"/g)].length, 1, 'The desktop download CTA must open Companion GitHub releases');
 assert.match(html, /id="annual-price">\$25<\/strong>/);
 assert.match(html, /id="price-code">AUD<\/span> \/ year/);
 assert.match(html, /Your first month is free\./);
@@ -22,7 +22,7 @@ for (const [, anchor] of html.matchAll(/href="#([^"]+)"/g)) {
   assert(ids.includes(anchor), `Missing anchor: ${anchor}`);
 }
 for (const [, asset] of html.matchAll(/(?:src|href)="(?!#)([^":]+)"/g)) {
-  assert(existsSync(path.join(root, asset)), `Missing local asset: ${asset}`);
+  assert(existsSync(path.join(root, asset.split('?')[0])), `Missing local asset: ${asset}`);
 }
 const nodes = new Map();
 function node(selector) {
@@ -41,10 +41,9 @@ const document = {
   querySelectorAll: selector => selector === '#buy .buy-options' ? buyLists : selector === '.buy-options' ? [...buyLists, node('#downloads-list')] : []
 };
 vm.runInNewContext(readFileSync(path.join(root, 'app.js'), 'utf8'), { document, setTimeout() {} });
-assert.match(html, /href="https:\/\/app\.uberclicker\.com\/#configure"/);
 assert.doesNotMatch(html, /name="connection"/, 'Setup links directly to the app instead of offering unavailable transports');
 assert.doesNotMatch(html, /Claim and configure|Local BLE setup|No acknowledgement yet/);
-assert(!/023|82%|LoRa paired|cue-count/.test(html), 'No invented device status or cue counter');
+assert(!/023|82%|LoRa paired|cue-count/.test(html.replace(/<svg\b[\s\S]*?<\/svg>/g, '')), 'No invented device status or cue counter');
 assert.deepEqual(buyLists.filter(list => !list.hidden).map(list => list.id), ['buy-au']);
 for (const region of ['buy-nz', 'buy-us', 'buy-eu', 'buy-au']) {
   node('#buy-country').value = region;

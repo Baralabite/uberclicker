@@ -34,10 +34,13 @@ test('checkout uses one annual price, replaces a monthly checkout, and preserves
     return new Response(JSON.stringify(response), { headers: { 'content-type': 'application/json' } });
   };
   try {
-    for (const trialUsed of [0, 1]) {
+    for (const desktop of [false, true]) for (const trialUsed of [0, 1]) {
       room.trial_used = trialUsed;
-      assert.equal(await checkout(env, { id: 'owner', email: 'owner@example.com' }, 'year', room.id), 'https://checkout.stripe.com/year');
+      assert.equal(await checkout(env, { id: 'owner', email: 'owner@example.com' }, 'year', room.id, desktop), 'https://checkout.stripe.com/year');
       const body = requests.at(-1).body;
+      assert.equal(body.get('success_url'), desktop ? 'https://app.uberclicker.com/desktop-billing' : 'https://app.uberclicker.com/?checkout=success#account');
+      assert.equal(body.get('cancel_url'), desktop ? 'https://app.uberclicker.com/desktop-billing' : 'https://app.uberclicker.com/#account');
+      assert.equal(body.get('metadata[uberclicker_desktop]'), String(desktop));
       assert.equal(body.get('line_items[0][price]'), 'price_year');
       assert.equal(body.get('line_items[0][quantity]'), '1');
       assert.equal(body.get('metadata[uberclicker_interval]'), 'year');

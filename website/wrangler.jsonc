@@ -6,6 +6,6 @@
   "account_id": "ecb7d7f0a38ffceb8ad7f96c022b43f2",
   "workers_dev": true,
   "routes": [{ "pattern": "uberclicker.com/*", "zone_name": "uberclicker.com" }, { "pattern": "www.uberclicker.com/*", "zone_name": "uberclicker.com" }],
-  "assets": { "directory": "dist", "binding": "ASSETS", "run_worker_first": ["/app", "/app/*", "/api/country"] },
+  "assets": { "directory": "dist", "binding": "ASSETS", "run_worker_first": ["/flash", "/flash/", "/app", "/app/*", "/api/country"] },
   "observability": { "enabled": false }
 }

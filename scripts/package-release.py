@@ -64,7 +64,9 @@ def source_bundle(layout, output):
 def sha(data):
     return hashlib.sha256(data).hexdigest()
 
-def package(layout, output, version, commit, source_dirty=False):
+def package(layout, output, version, commit, source_dirty=False, role='configurable'):
+    if role not in ('configurable', 'tx', 'rx'):
+        raise ValueError('Unsupported firmware role')
     if len(version) > 31 or not VERSION.fullmatch(version) or not re.fullmatch(r"[0-9a-f]{40}", commit):
         raise ValueError("Use a semantic prerelease version and a full source commit")
     if layout["chip"] != "esp32s3" or layout["flashSize"] != "4MB":
@@ -117,7 +119,7 @@ def package(layout, output, version, commit, source_dirty=False):
     versions = protocol_metadata((ROOT / 'firmware/include/config_service.h').read_text(), schema,
         (ROOT / ('firmware/include/radio_broadcast.h' if schema == 4 else 'firmware/src/radio_protocol.cpp')).read_text())
     manifest = {"manifestVersion": 1, "version": version, "channel": "prerelease",
-                "board": "thinknode_m5", "chip": "esp32s3", "flashSize": 4194304,
+                "board": "thinknode_m5", "chip": "esp32s3", "flashSize": 4194304, "firmwareRole": role,
                 "sourceCommit": commit, "sourceDirty": source_dirty, **versions,
                 "hardwareValidated": False, "images": images, "partitions": partitions}
     output = Path(output)
@@ -132,6 +134,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--version", required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--role", choices=['configurable', 'tx', 'rx'], default='configurable')
     parser.add_argument("--allow-dirty", action="store_true", help="Local dry run only; its manifest cannot be published")
     args = parser.parse_args()
     if len(args.version) > 31 or not VERSION.fullmatch(args.version):
@@ -153,9 +156,10 @@ def main():
         cfg = Path(temp) / "platformio.ini"
         with cfg.open("w") as handle:
             conf.write(handle)
-        subprocess.run(["pio", "run", "-d", str(ROOT / "firmware"), "-c", str(cfg), "-e", "thinknode_m5"], check=True)
-        layout = json.loads((Path(temp) / "build/thinknode_m5/flash-layout.json").read_text())
-        package(layout, args.output, args.version, commit, dirty)
+        environment = 'thinknode_m5' + ('' if args.role == 'configurable' else '_' + args.role)
+        subprocess.run(["pio", "run", "-d", str(ROOT / "firmware"), "-c", str(cfg), "-e", environment], check=True)
+        layout = json.loads((Path(temp) / 'build' / environment / 'flash-layout.json').read_text())
+        package(layout, args.output, args.version, commit, dirty, args.role)
         source_bundle(layout, args.output)
 
 if __name__ == "__main__":

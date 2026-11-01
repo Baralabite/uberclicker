@@ -3,7 +3,7 @@ import { desktop } from "./native";
 import { SerialTransport } from "./serial";
 
 export type Runtime = "browser" | "desktop" | "ios" | "android";
-export type Page = "account" | "configure" | "receive" | "send";
+export type Page = "account" | "configure" | "receive" | "send" | "install";
 export type Capabilities = {
   configureDevices: boolean;
   canConfigureDevices: boolean;
@@ -29,8 +29,8 @@ export function capabilitiesFor(runtime: Runtime, webSerial: boolean, browser = 
   const phone = runtime === "ios" || runtime === "android";
   return {
     configureDevices, canConfigureDevices, receiveCloudClicks, sendCloudClicks: true,
-    accountInApp: runtime === "browser", rememberRemoteDestinations: phone,
-    pages: ["send", "account", ...(configureDevices ? ["configure" as const] : []), ...(receiveCloudClicks ? ["receive" as const] : [])],
+    accountInApp: runtime === "browser" || runtime === "desktop", rememberRemoteDestinations: phone,
+    pages: ["send", "account", ...(runtime === "browser" || runtime === "desktop" ? ["install" as const] : []), ...(configureDevices ? ["configure" as const] : []), ...(receiveCloudClicks ? ["receive" as const] : [])],
     home: receiveCloudClicks ? "receive" : configureDevices ? "configure" : "send",
   };
 }

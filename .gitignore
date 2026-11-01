@@ -6,3 +6,4 @@ __pycache__/
 artifacts/
 website/dist/app/
 website/dist/device-preview.html
+app/public/installer/

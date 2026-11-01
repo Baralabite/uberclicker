@@ -2,10 +2,10 @@ name: Cloud and desktop companion
 on:
   workflow_dispatch:
   pull_request:
-    paths: ['companion/**', 'cloud/**', 'app/**', 'contracts/**', '.github/workflows/companion.yml']
+    paths: ['companion/**', 'cloud/**', 'app/**', 'contracts/**', 'website/dist/flash/**', '.github/workflows/companion.yml']
   push:
     branches: [main]
-    paths: ['companion/**', 'cloud/**', 'app/**', 'contracts/**', '.github/workflows/companion.yml']
+    paths: ['companion/**', 'cloud/**', 'app/**', 'contracts/**', 'website/dist/flash/**', '.github/workflows/companion.yml']
 permissions:
   contents: read
 jobs:
@@ -19,6 +19,7 @@ jobs:
           cache: npm
           cache-dependency-path: cloud/package-lock.json
       - run: npm ci --prefix app && npm test --prefix app && npm run build --prefix app
+      - run: node --test website/flash.test.mjs
       - run: npm ci && npm run check && npm test && npx wrangler deploy --dry-run
         working-directory: cloud
   desktop:

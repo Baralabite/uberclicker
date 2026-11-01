@@ -36,4 +36,9 @@ export class NativeSerialPort {
   close() {
     return this.closing ??= invoke<void>("serial_close", { session: this.session });
   }
+
+  setSignals(signals: { dataTerminalReady?: boolean; requestToSend?: boolean; break?: boolean }) {
+    return invoke<void>("serial_signals", { session: this.session, dataTerminalReady: signals.dataTerminalReady,
+      requestToSend: signals.requestToSend, breakEnabled: signals.break });
+  }
 }

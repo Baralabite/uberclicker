@@ -41,6 +41,13 @@ class PackageTests(unittest.TestCase):
         self.assertEqual(subprocess.run(command, capture_output=True).returncode, 0)
         (self.root / 'out/firmware.bin').write_bytes(b'corrupted')
         self.assertNotEqual(subprocess.run(command, capture_output=True).returncode, 0)
+    def test_role_packages_identify_their_firmware(self):
+        for role in ['configurable', 'tx', 'rx']:
+            manifest = release.package(self.layout, self.root / role, '0.1.0-test.1', 'a' * 40, role=role)
+            self.assertEqual(manifest['firmwareRole'], role)
+            self.assertEqual(manifest['version'], '0.1.0-test.1')
+        with self.assertRaises(ValueError):
+            release.package(self.layout, self.root / 'invalid', '0.1.0-test.1', 'a' * 40, role='invalid')
     def test_wrong_chip(self):
         self.layout['chip'] = 'esp32'
         with self.assertRaises(ValueError): self.package()

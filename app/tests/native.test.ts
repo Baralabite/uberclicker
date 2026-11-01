@@ -48,3 +48,48 @@ test("desktop USB uses shared framing, survives idle reads and closes once on un
     else delete (globalThis as any).window;
   }
 });
+
+test("native flash adapter drives the pinned esptool transport and reopens cleanly", async () => {
+  const original = Object.getOwnPropertyDescriptor(globalThis, "window");
+  Object.defineProperty(globalThis, "window", { configurable: true, value: {} });
+  const { NativeFlashPort } = await import("../src/native-flash");
+  const { Transport } = await import(new URL("../../website/dist/flash/vendor/esptool-js-0.7.0.js", import.meta.url).href);
+  const calls: { command: string; args: any }[] = [];
+  let opened = 0;
+  let pending: ((bytes: number[]) => void) | undefined;
+  mockIPC(async (command, payload) => {
+    const args = payload as any;
+    calls.push({ command, args });
+    if (command === "serial_open") { assert.equal(args.path, "test-usb"); return ++opened; }
+    assert.equal(args.session, opened);
+    if (command === "serial_read") return new Promise<number[]>(resolve => { pending = resolve; });
+    if (command === "serial_close") { pending?.([]); return; }
+    if (command === "serial_write" || command === "serial_signals") return;
+    assert.fail(`Unexpected command ${command}`);
+  });
+  try {
+    const port = new NativeFlashPort("test-usb");
+    await assert.rejects(port.open({ baudRate: 921600 }), /115200/);
+    assert.equal(opened, 0);
+    const transport = new Transport(port, true);
+    await transport.connect(115200);
+    await transport.setDTR(false);
+    await transport.setRTS(true);
+    assert.ok(calls.some(c => c.command === "serial_signals" && c.args.requestToSend === true));
+    const data = new Uint8Array(16384).fill(0xc0);
+    await transport.write(data);
+    const sent = calls.find(c => c.command === "serial_write")!.args.bytes;
+    assert.equal(sent.length, data.length * 2 + 2); // SLIP escaping expands large flash blocks.
+    assert.deepEqual(sent.slice(0, 5), [0xc0, 0xdb, 0xdc, 0xdb, 0xdc]);
+    await transport.disconnect();
+    assert.equal(port.readable, null);
+    await transport.connect(115200);
+    assert.equal(opened, 2);
+    await transport.disconnect();
+    assert.equal(calls.filter(c => c.command === "serial_close").length, 2);
+  } finally {
+    clearMocks();
+    if (original) Object.defineProperty(globalThis, "window", original);
+    else delete (globalThis as any).window;
+  }
+});

@@ -1,11 +1,16 @@
 import { capabilities } from "./capabilities";
 import "./account.css";
+import { desktop, nativeInvoke } from "./native";
 
 type LinkedClicker = { id: string; name: string; channels: string[]; last_seen?: number };
 type Account = { devices?: LinkedClicker[]; user: { name: string; email: string }; pro: boolean; billing: { hasCustomer: boolean; status: string; until: number; trialUsed: boolean }; rooms: { id: string; name: string; created_at: number; revoked: number; status: string; pro_until: number; trial_used: number }[] };
 type Config = { email: boolean; billing: boolean };
 const escape = (s: unknown) => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 async function api<T = Record<string, unknown>>(path: string, body?: unknown): Promise<T> {
+  if (desktop) {
+    try { return await nativeInvoke<T>("account_request", { path, body: body ?? null }); }
+    catch (error) { throw error instanceof Error ? error : Error(String(error)); }
+  }
   const response = await fetch(path, { method: body === undefined ? "GET" : "POST", credentials: "same-origin", headers: body === undefined ? {} : { "Content-Type": "application/json" }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
   const data = await response.json();
   if (!response.ok) throw new Error(data.message || data.error || "Request failed. Please try again.");
@@ -14,6 +19,17 @@ async function api<T = Record<string, unknown>>(path: string, body?: unknown): P
 export function mountAccount(root: HTMLDivElement) {
   let config: Config = { email: false, billing: false };
   let current: Account | null = null;
+  let signinEmail = "";
+  let billingPending = false;
+  const external = !capabilities.accountInApp || (!desktop && !["app.uberclicker.com", "localhost", "127.0.0.1"].includes(location.hostname));
+  async function openExternal(url: string) {
+    try { await nativeInvoke("account_open_external", { url }); }
+    catch (error) { throw error instanceof Error ? error : Error(String(error)); }
+  }
+  root.addEventListener("click", event => {
+    const link = (event.target as Element).closest<HTMLAnchorElement>('a[href^="/manual/"]');
+    if (desktop && link) { event.preventDefault(); void run(() => openExternal(`https://app.uberclicker.com${link.getAttribute("href")}`)); }
+  });
   let channelCodes: { tx: string; client: string } | null = null;
   function message(text: string) { (root.querySelector<HTMLElement>("dialog[open] [role=status]") ?? root.querySelector<HTMLElement>("[role=status]"))!.textContent = text; }
   async function run(action: () => Promise<void>) {
@@ -41,7 +57,7 @@ export function mountAccount(root: HTMLDivElement) {
   }
   function render() {
     renderAccountMenu();
-    if (!capabilities.accountInApp || !["app.uberclicker.com", "localhost", "127.0.0.1"].includes(location.hostname)) {
+    if (external) {
       root.innerHTML = `<main class="account-page"><h1>Account</h1><p>Manage Cloud Channels and billing online.</p><a class="account-link" href="https://app.uberclicker.com/#account" target="_blank" rel="noopener">Open account</a><p>USB configuration is free and works without an account.</p></main>`; return;
     }
     root.innerHTML = `<main class="account-page${current ? "" : " account-signin"}"><p role="status" aria-live="polite" class="account-message"></p>${current ? dashboard(current) : login()}</main>`;
@@ -126,19 +142,37 @@ export function mountAccount(root: HTMLDivElement) {
       const form = root.querySelector<HTMLFormElement>("#auth-form")!;
       form.onsubmit = e => {
         e.preventDefault();
-        const email = String(new FormData(form).get("email") ?? "");
+        const values = new FormData(form);
+        const email = String(values.get("email") ?? "");
+        const otp = String(values.get("otp") ?? "").trim();
         void run(async () => {
-          await api("/api/auth/sign-in/magic-link", { email, callbackURL: "/#account", errorCallbackURL: "/#account" });
-          message("Check your inbox for a sign-in link. It expires in 10 minutes.");
+          if (desktop) {
+            if (signinEmail) {
+              await api("/api/auth/sign-in/email-otp", { email: signinEmail, otp });
+              signinEmail = "";
+              await refresh();
+            } else {
+              await api("/api/auth/email-otp/send-verification-otp", { email, type: "sign-in" });
+              signinEmail = email;
+              render();
+              root.querySelector<HTMLInputElement>("#signin-code")!.focus();
+            }
+          } else {
+            await api("/api/auth/sign-in/magic-link", { email, callbackURL: "/#account", errorCallbackURL: "/#account" });
+            message("Check your inbox for a sign-in link. It expires in 10 minutes.");
+          }
         });
       };
-
+      on("signin-change-email", async () => { signinEmail = ""; render(); root.querySelector<HTMLInputElement>("#signin-email")!.focus(); });
+      on("signin-resend", async () => {
+        await api("/api/auth/email-otp/send-verification-otp", { email: signinEmail, type: "sign-in" });
+        message("New code sent. Use the latest email; the code expires in 10 minutes.");
+      });
     }
   }
   function renderAccountMenu() {
     const avatar = document.querySelector<HTMLButtonElement>("#account-avatar")!;
     const menu = document.querySelector<HTMLElement>("#account-menu")!;
-    const external = !capabilities.accountInApp || !["app.uberclicker.com", "localhost", "127.0.0.1"].includes(location.hostname);
     avatar.textContent = Array.from(current?.user.name.trim() ?? "")[0]?.toLocaleUpperCase() || "U";
     menu.innerHTML = current ? `<p class="account-menu-name">${escape(current.user.name)}</p><button type="button" id="edit-display-name">Edit display name</button><button type="button" id="open-billing" ${current.billing.hasCustomer && config.billing ? "" : "disabled"}>Billing</button><button type="button" id="account-signout">Sign out</button><p role="status" aria-live="polite" class="hint"></p>` : `<a href="${external ? "https://app.uberclicker.com/#account" : "#account"}" ${external ? 'target="_blank" rel="noopener"' : ""}>${external ? "Open account" : "Sign in"}</a>`;
     menu.onbeforetoggle = () => { const bounds = avatar.getBoundingClientRect(); menu.style.top = `${bounds.bottom + 8}px`; menu.style.right = `${Math.max(16, innerWidth - bounds.right)}px`; };
@@ -161,15 +195,33 @@ export function mountAccount(root: HTMLDivElement) {
     signout.onclick = () => { signout.disabled = true; void (async () => { try { await api("/api/auth/sign-out", {}); menu.hidePopover(); current = null; channelCodes = null; render(); } catch (e) { menu.querySelector<HTMLElement>("[role=status]")!.textContent = e instanceof Error ? e.message : "Could not sign out."; } finally { signout.disabled = false; } })(); };
     const billing = menu.querySelector<HTMLButtonElement>("#open-billing")!;
     billing.onclick = () => {
+      if (desktop) {
+        billing.disabled = true;
+        void (async () => {
+          try { const result = await api<{ url: string }>("/api/billing/portal", { desktop: true }); await openExternal(result.url); billingPending = true; menu.hidePopover(); }
+          catch (error) { menu.querySelector<HTMLElement>("[role=status]")!.textContent = error instanceof Error ? error.message : "Could not open billing."; }
+          finally { billing.disabled = false; }
+        })();
+        return;
+      }
       const popup = window.open("about:blank", "_blank");
       if (!popup) { menu.querySelector<HTMLElement>("[role=status]")!.textContent = "Allow pop-ups to open Stripe billing."; return; }
       popup.opener = null; billing.disabled = true;
       void (async () => { try { const result = await api<{ url: string }>("/api/billing/portal", {}); popup.location.replace(result.url); menu.hidePopover(); } catch (e) { popup.close(); menu.querySelector<HTMLElement>("[role=status]")!.textContent = e instanceof Error ? e.message : "Could not open billing."; } finally { billing.disabled = false; } })();
     };
   }
-  async function subscribe(interval: string, room: string) { const result = await api<{ url: string }>("/api/billing/checkout", { interval, room }); location.assign(result.url); }
+  async function subscribe(interval: string, room: string) {
+    const result = await api<{ url: string }>("/api/billing/checkout", { interval, room, desktop });
+    if (desktop) {
+      await openExternal(result.url);
+      billingPending = true;
+      root.querySelector<HTMLDialogElement>("#channel-dialog")?.close();
+      message("Stripe opened in your browser. Return here after payment to update your channel.");
+    } else location.assign(result.url);
+  }
   function login() {
-    return `<form id="auth-form" class="login-panel"><label for="signin-email" class="sr-only">Email address</label><input id="signin-email" name="email" type="email" placeholder="Email address" autocomplete="email" autocapitalize="none" spellcheck="false" maxlength="254" required><button type="submit" aria-label="Email me a sign-in link" ${config.email ? "" : "disabled"}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button></form>`;
+    if (desktop && signinEmail) return `<div class="signin-code"><h1>Check your email</h1><p>Enter the six-digit code sent to ${escape(signinEmail)}. It expires in 10 minutes.</p><form id="auth-form" class="login-panel"><label for="signin-code" class="sr-only">Sign-in code</label><input id="signin-code" name="otp" placeholder="Six-digit code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required><button type="submit" aria-label="Sign in"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button></form><div class="signin-actions"><button type="button" id="signin-resend">Resend code</button><button type="button" id="signin-change-email">Change email</button></div></div>`;
+    return `<form id="auth-form" class="login-panel"><label for="signin-email" class="sr-only">Email address</label><input id="signin-email" name="email" type="email" placeholder="Email address" autocomplete="email" autocapitalize="none" spellcheck="false" maxlength="254" required><button type="submit" aria-label="${desktop ? "Email me a sign-in code" : "Email me a sign-in link"}" ${config.email ? "" : "disabled"}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button></form>`;
   }
   function seen(at?: number) {
     if (!at) return "Not yet";
@@ -196,13 +248,17 @@ export function mountAccount(root: HTMLDivElement) {
     const safeToRefresh = () => !!account && current === account && !root.hidden && document.visibilityState === "visible" && !document.querySelector("dialog[open], [popover]:popover-open") && !!root.querySelector<HTMLElement>("#clicker-pairing")?.hidden && !channelCodes && !root.querySelector("input:focus, button:disabled");
     if (refreshing || !safeToRefresh()) return;
     refreshing = true;
-    try { await refresh(safeToRefresh); } catch { /* Keep the last usable table during a temporary outage. */ } finally { refreshing = false; }
+    try {
+      if (billingPending) { await api("/api/billing/sync", {}); billingPending = false; }
+      await refresh(safeToRefresh);
+    } catch { /* Keep the last usable table during a temporary outage. */ } finally { refreshing = false; }
   }
+  window.addEventListener("focus", () => void refreshVisible());
   window.addEventListener("uberclicker:navigate", () => void refreshVisible());
   document.addEventListener("visibilitychange", () => void refreshVisible());
   setInterval(() => void refreshVisible(), 30000);
   root.innerHTML = '<main class="account-page"><p role="status">Loading your account…</p></main>';
-  if (!capabilities.accountInApp || !["app.uberclicker.com", "localhost", "127.0.0.1"].includes(location.hostname)) { render(); return; }
+  if (external) { render(); return; }
   void (async () => {
     try {
       config = await api<Config>("/api/config");

@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   deploy:
-    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && (github.event.workflow_run.event == 'push' || (github.event.workflow_run.event == 'workflow_dispatch' && github.event.workflow_run.head_branch == 'main')))
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -29,6 +29,10 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 24
+      - name: Mirror verified published firmware releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/mirror-releases.mjs
       - name: Build browser configuration app
         run: |
           npm ci --prefix app
@@ -40,10 +44,6 @@ jobs:
           node --check website/dist/app.js
           node --input-type=module --check < website/dist/device.js
           node --test website/flash.test.mjs scripts/tests/mirror-releases.test.mjs
-      - name: Mirror verified published firmware releases
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: node scripts/mirror-releases.mjs
       - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
       - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
         with:

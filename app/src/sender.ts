@@ -1,4 +1,5 @@
 import { capabilities } from "./capabilities";
+import { desktop } from "./native";
 import { Haptics, ImpactStyle } from "@capacitor/haptics";
 import { destination, storedDestinations, SenderClient, type Destination, type SenderState } from "./sender-client";
 import "./sender.css";
@@ -74,7 +75,7 @@ export function mountSender(root: HTMLDivElement) {
       initialized = true;
       if (live.unlinked) { destinations = destinations.filter(d => d.room !== selected); selected = ""; await persist(); }
       if (invitation || !current()) {
-        const apiRoot = capabilities.accountInApp && ["app.uberclicker.com", "localhost", "127.0.0.1"].includes(location.hostname) ? "" : "https://api.uberclicker.com";
+        const apiRoot = !desktop && capabilities.accountInApp && ["app.uberclicker.com", "localhost", "127.0.0.1"].includes(location.hostname) ? "" : "https://api.uberclicker.com";
         const name = capabilities.rememberRemoteDestinations ? "Phone clicker" : "Web clicker";
         if (invitation && !invitedTarget) {
           const random = (size: number) => Array.from(crypto.getRandomValues(new Uint8Array(size)), b => b.toString(16).padStart(2, "0")).join("");

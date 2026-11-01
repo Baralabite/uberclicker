@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844">
+  <defs><clipPath id="display"><rect width="390" height="844" rx="48"/></clipPath></defs>
+  <g clip-path="url(#display)" font-family="Avenir Next,Avenir,Arial,sans-serif">
+    <path fill="#2c50c8" d="M0 0h390v844H0z"/>
+    <path fill="#fff" d="M0 0h390v174H0z"/>
+    <text x="30" y="36" fill="#17243a" font-size="16" font-weight="600">9:41</text>
+    <g fill="#17243a"><rect x="300" y="28" width="3" height="4" rx="1"/><rect x="305" y="25" width="3" height="7" rx="1"/><rect x="310" y="22" width="3" height="10" rx="1"/><rect x="315" y="19" width="3" height="13" rx="1"/></g>
+    <path d="M326 24q8-8 16 0m-13 4q5-5 10 0" fill="none" stroke="#17243a" stroke-width="2"/><circle cx="334" cy="32" r="1.5" fill="#17243a"/>
+    <rect x="350" y="21" width="22" height="11" rx="3" fill="none" stroke="#17243a"/><rect x="352" y="23" width="17" height="7" rx="1" fill="#17243a"/><path d="M374 24v5" stroke="#17243a" stroke-width="2"/>
+    <rect x="135" y="12" width="120" height="35" rx="18" fill="#090a0c"/><circle cx="235" cy="29" r="5" fill="#141c29"/>
+    <svg x="24" y="73" width="32" height="32" viewBox="0 0 256 256"><rect width="256" height="256" rx="52" fill="#2c50c8"/><path d="M112 68 44 128l68 60zm32 0v120l68-60z" fill="#fff"/></svg>
+    <text x="66" y="98" fill="#17243a" font-size="24" font-weight="750" letter-spacing="-1">UberClicker</text>
+    <circle cx="344" cy="89" r="22" fill="#e8eefc"/><text x="344" y="95" fill="#2c50c8" font-size="16" font-weight="600" text-anchor="middle">U</text>
+    <path d="M0 122h390M0 173h390" stroke="#d7dee8"/>
+    <g font-size="14" font-weight="650"><text x="24" y="154" fill="#2c50c8">Cue</text><text x="77" y="154" fill="#52617a">Cloud</text></g>
+    <path d="M24 171h29" stroke="#2c50c8" stroke-width="3"/>
+    <svg x="68" y="365" width="254" height="254" viewBox="0 0 64 64"><path d="M12 8 52 32 12 56Z" fill="#fff"/></svg>
+    <svg x="179" y="753" width="32" height="32" viewBox="0 0 64 64"><path d="M52 8 12 32 52 56Z" fill="#fff"/></svg>
+    <rect x="127" y="826" width="136" height="5" rx="3" fill="#fff"/>
+  </g>
+</svg>

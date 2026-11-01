@@ -39,7 +39,7 @@ Localhost is available for development. See [deployment evidence](docs/deploymen
 | Firmware | One-way broadcasts, passive RX discovery and selection; no GPS/tracker |
 | Configuration | USB serial only on TX and RX; automatically trusted, independent device settings |
 | Apps | Shared browser/Tauri UI for USB setup; desktop adds background cloud keyboard/OSC receiving; earlier native mobile builds do not configure current firmware |
-| Releases/installer | CI candidates, explicit prerelease tags, build-derived manifests, verified mirror, serial-requested, physically confirmed Wi-Fi OTA and pinned browser flasher; real flash/recovery untested |
+| Releases/installer | CI builds configurable/TX/RX firmware and publishes experimental releases from main or prerelease tags; native Companion USB flashing, pinned browser flasher, verified manifests and opt-in OTA; real flash/recovery untested |
 | Device UI | TX broadcast status; RX recent-TX list and single-press selection; physical panel review pending |
 | Dock | Editable one/two-bay prototypes, rounded walls, 25% wider base, opposing cable tabs and fit coupon; printing/fit/charging pending |
 
@@ -52,6 +52,9 @@ Radio presets use **917 MHz** without regional selection.
 Native USB HID/MIDI is unavailable; CH340 serial programming does not establish
 native USB wiring. Profiles are selected in the app. Signed iPhone distribution
 and app-store publication require signing/account work and are not included.
+
+Install published firmware in desktop Companion under **Install**, then choose the
+role in **Configure**. Companion retrieves verified releases directly from GitHub.
 
 Flash a connected device as a transmitter with `./flash.sh tx`, or as a receiver
 with `./flash.sh rx`. These preserve compatible settings and select the role in

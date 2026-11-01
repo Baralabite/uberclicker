@@ -208,3 +208,15 @@ The Stripe webhook is `https://app.uberclicker.com/api/billing/webhook`, listeni
 To finish Google sign-in, create a Google web OAuth client with callback `https://app.uberclicker.com/api/auth/callback/google`, set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` as Worker secrets, and complete Google's consent/publishing configuration. The dashboard enables Google only when both credentials exist.
 
 Verified on 1 November 2026: local password/session and relay integration tests; destination isolation, revocation and billing reconciliation tests; user-confirmed live email sign-in and Stripe Checkout. A completed paid charge, renewal, physical hardware and live phone-to-native output have not been validated by this deployment task.
+
+### Flash hardware from Companion
+
+The **Install** tab flashes ThinkNode M5 firmware through native USB on macOS,
+Windows and Linux. Select a port and published prerelease, verify the downloads,
+then explicitly start the write. Disconnect any Configure session first. Keep
+settings is the default; a full erase needs separate consent. See
+[desktop installation and recovery](flashing.md#desktop-companion-installation).
+
+### Desktop account management
+
+Companion’s Cloud tab supports email-code sign-in, channel management and linked-clicker routing. Enter the emailed six-digit code in Companion; the session is stored in the operating system credential store, separately from receiver credentials. Website sign-in continues to use email links. Checkout and billing open Stripe in the system browser, then show a reminder to return to Companion. Returning to the Cloud tab refreshes the channel plan. Deploy the cloud worker with email-OTP support before distributing this Companion build. No database migration is required.

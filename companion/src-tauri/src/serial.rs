@@ -130,13 +130,19 @@ pub async fn serial_write(
     bytes: Vec<u8>,
     state: State<'_, SerialState>,
 ) -> Result<(), String> {
-    if bytes.is_empty() || bytes.len() > 8196 {
+    if bytes.is_empty() || bytes.len() > 131072 {
         return Err("Invalid USB message size".into());
     }
     let connection = state.connection.clone();
     tauri::async_runtime::spawn_blocking(move || {
         let mut guard = connection.lock().unwrap();
-        if active(&mut guard, session)?.port.write_all(&bytes).is_err() {
+        let port = &mut active(&mut guard, session)?.port;
+        // A compressed flash block can take seconds at 115200 baud.
+        port.set_timeout(Duration::from_secs(15))
+            .map_err(|e| e.to_string())?;
+        let written = port.write_all(&bytes);
+        let restored = port.set_timeout(Duration::from_millis(100));
+        if written.is_err() || restored.is_err() {
             *guard = None;
             return Err("USB write failed. Reconnect and reread before retrying.".into());
         }
@@ -144,6 +150,40 @@ pub async fn serial_write(
     })
     .await
     .map_err(|_| "USB write failed")?
+}
+
+#[tauri::command]
+pub async fn serial_signals(
+    session: u32,
+    data_terminal_ready: Option<bool>,
+    request_to_send: Option<bool>,
+    break_enabled: Option<bool>,
+    state: State<'_, SerialState>,
+) -> Result<(), String> {
+    let connection = state.connection.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut guard = connection.lock().unwrap();
+        let port = &mut active(&mut guard, session)?.port;
+        if let Some(value) = data_terminal_ready {
+            port.write_data_terminal_ready(value)
+                .map_err(|e| e.to_string())?;
+        }
+        if let Some(value) = request_to_send {
+            port.write_request_to_send(value)
+                .map_err(|e| e.to_string())?;
+        }
+        if let Some(value) = break_enabled {
+            if value {
+                port.set_break()
+            } else {
+                port.clear_break()
+            }
+            .map_err(|e| e.to_string())?;
+        }
+        Ok(())
+    })
+    .await
+    .map_err(|_| "Could not control USB reset signals")?
 }
 
 #[tauri::command]

@@ -1,6 +1,6 @@
 import { before, after, test } from "node:test";
 import assert from "node:assert/strict";
-import { createHmac } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import { spawn, execFileSync } from "node:child_process";
 import { mkdtemp, rm, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -371,4 +371,30 @@ test("public Manual views receive cues without login but cannot publish; entitle
   assert.equal(await revoked, 1008);
   assert.equal((await fetch(`${api}${endpoint}`)).status, 404);
   await assert.rejects(connect(c, "manual"), /404/);
+});
+
+
+test("desktop email codes create a verified session, reject reuse and expire", async () => {
+  const email = "desktop@example.com", otp = "726315";
+  const seed = (suffix, expires = Date.now() + 600000, attempts = 0) => {
+    const now = Date.now(), hash = createHash("sha256").update(otp).digest("base64url");
+    sql(`DELETE FROM verification WHERE identifier = 'sign-in-otp-${email}'; INSERT INTO verification (id, identifier, value, expiresAt, createdAt, updatedAt) VALUES ('desktop-${suffix}', 'sign-in-otp-${email}', '${hash}:${attempts}', ${expires}, ${now}, ${now})`);
+  };
+  seed("valid");
+  assert.equal((await post("/api/auth/sign-in/email-otp", { email, otp }, "", "https://evil.example")).status, 403);
+  const signed = await post("/api/auth/sign-in/email-otp", { email, otp }, "");
+  assert.equal(signed.status, 200, await signed.clone().text());
+  assert.equal((await signed.json()).user.emailVerified, true);
+  const session = signed.headers.getSetCookie().map(value => value.split(";")[0]).join("; ");
+  assert.ok(session.includes("session_token="));
+  const account = await fetch(`${api}/api/account`, { headers: { Cookie: session } });
+  assert.equal(account.status, 200);
+  assert.equal((await account.json()).user.email, email);
+  assert.equal((await post("/api/auth/sign-in/email-otp", { email, otp }, "")).status, 400);
+  seed("expired", Date.now() - 1000);
+  assert.equal((await post("/api/auth/sign-in/email-otp", { email, otp }, "")).status, 400);
+  seed("locked", Date.now() + 600000, 3);
+  assert.equal((await post("/api/auth/sign-in/email-otp", { email, otp }, "")).status, 403);
+  assert.equal((await post("/api/auth/sign-out", {}, session)).status, 200);
+  assert.equal((await fetch(`${api}/api/account`, { headers: { Cookie: session } })).status, 401);
 });

@@ -1,14 +1,12 @@
 import * as THREE from './vendor/three.module.js';
 
 const stage = document.querySelector('#device-viewport');
-const status = document.querySelector('#model-status');
 const canvas = document.querySelector('#device-canvas');
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const finePointer = matchMedia('(hover: hover) and (pointer: fine)');
 
 function showFallback() {
   stage.classList.remove('loaded');
-  status.textContent = 'Static illustration · 3D unavailable';
 }
 
 try {
@@ -20,8 +18,8 @@ try {
   renderer.toneMappingExposure = 1.45;
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 100);
-  camera.position.set(0, 1.1, 26.8);
-  camera.lookAt(0, 1.2, 0);
+  camera.position.set(0, .5, 26.8);
+  camera.lookAt(0, .5, 0);
   scene.add(new THREE.HemisphereLight(0xffffff, 0x747063, 3));
   const key = new THREE.DirectionalLight(0xffffff, 5.5);
   key.position.set(-6, 9, 10); scene.add(key);
@@ -32,7 +30,9 @@ try {
 
   const model = new THREE.Group();
   const device = new THREE.Group();
-  device.position.y = -1.8;
+  device.position.set(-2.5,-1.8,.6);
+  device.scale.setScalar(.82);
+  device.rotation.y = -.12;
   model.add(device); scene.add(model);
   const shell = new THREE.MeshStandardMaterial({ color: 0x252724, roughness: .42, metalness: .17 });
   const face = new THREE.MeshStandardMaterial({ color: 0x1d201d, roughness: .48, metalness: .12 });
@@ -40,11 +40,11 @@ try {
   const edge = new THREE.MeshStandardMaterial({ color: 0x373a34, roughness: .36, metalness: .3 });
   const steel = new THREE.MeshStandardMaterial({ color: 0x8a8b80, roughness: .26, metalness: .85 });
   const slot = new THREE.MeshStandardMaterial({ color: 0x090b08, roughness: .6 });
-  const mesh = (geometry, material, x=0, y=0, z=0) => {
+  const mesh = (geometry, material, x=0, y=0, z=0, parent=device) => {
     const result = new THREE.Mesh(geometry, material);
-    result.position.set(x,y,z); device.add(result); return result;
+    result.position.set(x,y,z); parent.add(result); return result;
   };
-  function roundedBox(w,h,d,r,material,x=0,y=0,z=0) {
+  function roundedBox(w,h,d,r,material,x=0,y=0,z=0,parent=device) {
     const shape = new THREE.Shape();
     const left = -w/2, bottom = -h/2;
     shape.moveTo(left+r,bottom);
@@ -54,7 +54,7 @@ try {
     shape.lineTo(left,bottom+r);shape.quadraticCurveTo(left,bottom,left+r,bottom);
     const geo = new THREE.ExtrudeGeometry(shape,{ depth:d-.12,bevelEnabled:true,bevelSegments:3,steps:1,bevelSize:.06,bevelThickness:.06,curveSegments:8 });
     geo.translate(0,0,-d/2+.06);
-    return mesh(geo,material,x,y,z);
+    return mesh(geo,material,x,y,z,parent);
   }
   // Approximate exterior proportions from Elecrow; this is not production CAD.
   roundedBox(5.16,8.2,2.63,.47,shell);
@@ -64,20 +64,11 @@ try {
   roundedBox(3.64,3.91,.13,.31,slot,0,.78,1.55);
   roundedBox(3.43,3.55,.07,.14,steel,0,.78,1.63);
 
-  const display = document.createElement('canvas'); display.width=400;display.height=400;
-  const ctx = display.getContext('2d');
-  ctx.scale(2,2);
-  ctx.fillStyle='#e5e7d9';ctx.fillRect(0,0,200,200);
-  ctx.fillStyle='#20251b';ctx.textBaseline='top';ctx.font='bold 12px Arial';ctx.fillText('LORA TX',13,13);
-  ctx.font='12px Arial';ctx.textAlign='right';ctx.fillText('▮▮▮▯',187,13);ctx.textAlign='left';
-  ctx.fillRect(13,35,174,1.5);
-  ctx.font='bold 29px Arial';ctx.fillText('Presenter',12,54);
-  ctx.font='12px Arial';ctx.fillText('No action yet',13,104);
-  ctx.font='10px Arial';ctx.fillText('No acknowledgement yet',13,125);
-  ctx.fillRect(13,158,174,1);ctx.font='10px Arial';ctx.fillText('◀ Previous',13,171);ctx.textAlign='right';ctx.fillText('Next ▶',187,171);
-  ctx.font='8px Arial';ctx.textAlign='center';ctx.fillText('Both: menu',100,187);
-  const texture = new THREE.CanvasTexture(display);texture.colorSpace=THREE.SRGBColorSpace;
-  const screen = mesh(new THREE.PlaneGeometry(3.30,3.39),new THREE.MeshBasicMaterial({ map:texture }),0,.78,1.68);
+  // Exact 200 × 200 bitmap from the firmware renderer, using the Joe Presenter example snapshot.
+  const texture = new THREE.TextureLoader().load('assets/m5-tx-screen.png?name=joe-presenter', () => requestRender());
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.magFilter = THREE.NearestFilter;
+  const screen = mesh(new THREE.PlaneGeometry(3.30,3.39),new THREE.MeshBasicMaterial({ map:texture, color:0xe5e7d9 }),0,.78,1.68);
   screen.renderOrder=1;
 
   mesh(new THREE.CylinderGeometry(.48,.52,.48,48),steel,-1.31,4.2,0);
@@ -122,11 +113,28 @@ try {
   const labelTex=new THREE.CanvasTexture(label);labelTex.colorSpace=THREE.SRGBColorSpace;
   mesh(new THREE.PlaneGeometry(2.7,.47),new THREE.MeshBasicMaterial({map:labelTex,transparent:true}),0,-3.39,1.38);
 
-  const home={ x:.10,y:-.39,z:-.085 };
+  const phone = new THREE.Group();
+  phone.position.set(2.45,.2,-.4);
+  phone.scale.setScalar(.84);
+  phone.rotation.y = .12;
+  model.add(phone);
+  const titanium = new THREE.MeshStandardMaterial({color:0x72757c, roughness:.3, metalness:.8});
+  const glass = new THREE.MeshStandardMaterial({color:0x090a0c, roughness:.15, metalness:.25});
+  roundedBox(5.68,12.15,.68,.82,titanium,0,0,0,phone);
+  roundedBox(5.57,12.04,.12,.79,glass,0,0,.35,phone);
+  roundedBox(.07,.72,.2,.03,titanium,-2.86,2.45,0,phone);
+  roundedBox(.07,.72,.2,.03,titanium,-2.86,1.42,0,phone);
+  roundedBox(.07,1.16,.2,.03,titanium,2.86,1.95,0,phone);
+  // Cue mirrors the native app's paired screen; this preview never sends clicks.
+  const cueTexture = new THREE.TextureLoader().load('assets/iphone-cue-screen.svg', () => requestRender());
+  cueTexture.colorSpace = THREE.SRGBColorSpace;
+  cueTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  mesh(new THREE.PlaneGeometry(5.35,11.58),new THREE.MeshBasicMaterial({map:cueTexture, transparent:true}),0,0,.43,phone);
+
+  const home={ x:.07,y:-.12,z:-.035 };
   const target={x:home.x,y:home.y};model.rotation.set(home.x,home.y,home.z);
   let frame=0;
   const canMove=()=>finePointer.matches&&!reducedMotion.matches;
-  function updateStatus(){status.textContent=canMove()?'Move your pointer to explore':'3D model · fixed view';}
   function render(){renderer.render(scene,camera);}
   function animate(){
     frame=0;
@@ -142,20 +150,22 @@ try {
     if(!canMove())return;
     const x=Math.max(-1,Math.min(1,(event.clientX-bounds.left)/bounds.width*2-1));
     const y=Math.max(-1,Math.min(1,(event.clientY-bounds.top)/bounds.height*2-1));
-    target.x=home.x+y*.16;target.y=home.y+x*.17;requestRender();
+    target.x=home.x+y*.10;target.y=home.y+x*.22;requestRender();
   });
   function returnHome(){target.x=home.x;target.y=home.y;if(reducedMotion.matches){model.rotation.set(home.x,home.y,home.z);render();}else requestRender();}
   stage.addEventListener('pointerleave',returnHome);
-  reducedMotion.addEventListener('change',()=>{returnHome();updateStatus();});
-  finePointer.addEventListener('change',()=>{returnHome();updateStatus();});
+  reducedMotion.addEventListener('change',()=>{returnHome();});
+  finePointer.addEventListener('change',()=>{returnHome();});
   new ResizeObserver(entries=>{
     const {width,height}=entries[0].contentRect;
     if(!width||!height)return;
-    camera.aspect=width/height;camera.updateProjectionMatrix();renderer.setSize(width,height,false);render();
+    camera.aspect=width/height;
+    camera.position.z=Math.max(24,10.8/(2*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*camera.aspect));
+    camera.updateProjectionMatrix();renderer.setSize(width,height,false);requestRender();
   }).observe(stage);
-  canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();cancelAnimationFrame(frame);showFallback();});
-  canvas.addEventListener('webglcontextrestored',()=>{render();stage.classList.add('loaded');updateStatus();});
-  render();stage.classList.add('loaded');updateStatus();
+  canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();cancelAnimationFrame(frame);frame=0;showFallback();});
+  canvas.addEventListener('webglcontextrestored',()=>{requestRender();stage.classList.add('loaded');});
+  requestRender();stage.classList.add('loaded');
 } catch(error) {
   showFallback();
   console.warn('3D preview unavailable; the static device illustration is shown.',error);

@@ -97,3 +97,51 @@ test('unsupported browser executes safely with an empty published index', async 
     for (const [key, descriptor] of originals) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete globalThis[key]; }
   }
 });
+
+test('Companion uses native USB and live downloads without Web Serial, and reports failures safely', async () => {
+  const originals = new Map(['window', 'location', 'document', 'navigator', 'isSecureContext', 'Option', 'fetch'].map(k => [k, Object.getOwnPropertyDescriptor(globalThis, k)]));
+  const nodes = new Map();
+  const get = id => {
+    if (!nodes.has(id)) nodes.set(id, { value: id === 'channel' ? 'stable' : '', events: {}, addEventListener(type, handler) { this.events[type] = handler; }, replaceChildren(...options) { this.options = options; this.value = options[0]?.value ?? ''; }, add(option) { this.value = option.value; } });
+    return nodes.get(id);
+  };
+  const downloads = [];
+  let opens = 0;
+  const native = {
+    async ports() { return [{ path: '/dev/test', label: 'Test USB device' }]; },
+    port(path) { assert.equal(path, '/dev/test'); return { async open() { opens++; } }; },
+    async bytes(path) {
+      downloads.push(path);
+      if (path === 'releases/index.json') return new TextEncoder().encode(JSON.stringify({ indexVersion: 1, releases: [{ version: manifest.version, channel: 'prerelease', manifestSha256: '0'.repeat(64) }] }));
+      throw 'Download unavailable'; // Native IPC errors can be strings.
+    },
+  };
+  try {
+    Object.defineProperty(globalThis, 'navigator', { configurable: true, value: {} });
+    Object.assign(globalThis, { window: { parent: { location: { origin: 'http://localhost' }, uberclickerInstaller: native } }, location: { origin: 'http://localhost' }, document: { getElementById: get }, isSecureContext: true, Option: class { constructor(text, value) { Object.assign(this, { text, value }); } }, fetch() { assert.fail('Native installer must use native downloads'); } });
+    await import('./dist/flash/install.mjs?native-test');
+    assert.match(get('support').textContent, /Native USB/);
+    assert.equal(get('native-ports').hidden, false);
+    assert.equal(get('channel').value, 'prerelease');
+    assert.equal(get('connect').disabled, true);
+    get('port').value = '/dev/test'; get('board').value = 'thinknode_m5';
+    get('port').events.change();
+    assert.equal(get('connect').disabled, false);
+    await get('connect').events.click();
+    assert.equal(opens, 0);
+    assert.match(get('status').textContent, /Download unavailable/);
+    assert.equal(get('write').disabled, true);
+    assert.equal(get('connect').disabled, false);
+    assert.deepEqual(downloads, ['releases/index.json', `releases/${manifest.version}/manifest.json`]);
+    const download = native.bytes;
+    native.bytes = async () => { throw Error('Offline'); };
+    await get('refresh-releases').events.click();
+    assert.match(get('release-detail').textContent, /Offline.*Refresh releases/);
+    assert.equal(get('connect').disabled, true);
+    native.bytes = download;
+    await get('refresh-releases').events.click();
+    assert.equal(get('connect').disabled, false);
+  } finally {
+    for (const [key, descriptor] of originals) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete globalThis[key]; }
+  }
+});

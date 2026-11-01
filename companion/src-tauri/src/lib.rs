@@ -1,3 +1,5 @@
+mod account;
+mod firmware;
 mod model;
 mod output;
 mod propresenter;
@@ -317,6 +319,8 @@ pub fn run() {
             }
         })
         .invoke_handler(tauri::generate_handler![
+            account::account_request,
+            account::account_open_external,
             view,
             save_settings,
             propresenter::propresenter_presentations,
@@ -332,6 +336,8 @@ pub fn run() {
             serial::serial_open,
             serial::serial_read,
             serial::serial_write,
+            serial::serial_signals,
+            firmware::firmware_download,
             serial::serial_close
         ])
         .run(tauri::generate_context!())

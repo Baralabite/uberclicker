@@ -30,6 +30,7 @@ jobs:
       - name: Host tests and installer safety checks
         run: |
           python scripts/tests/test-package-release.py
+          python scripts/tests/test-flash.py
           node --test website/flash.test.mjs scripts/tests/mirror-releases.test.mjs
           node website/check.mjs
           python firmware/tests/run_host.py
@@ -42,10 +43,11 @@ jobs:
           REF_TYPE: ${{ github.ref_type }}
           REF_NAME: ${{ github.ref_name }}
           RUN_NUMBER: ${{ github.run_number }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
         run: |
           python - <<'PY'
           import os, re
-          version = os.environ['REF_NAME'].removeprefix('v') if os.environ['REF_TYPE'] == 'tag' else '0.1.0-ci.' + os.environ['RUN_NUMBER']
+          version = os.environ['REF_NAME'].removeprefix('v') if os.environ['REF_TYPE'] == 'tag' else '0.1.0-ci.' + os.environ['RUN_NUMBER'] + '.' + os.environ['RUN_ATTEMPT']
           if len(version) > 31 or not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*', version):
               raise SystemExit('Only explicit prerelease tags accepted; stable requires hardware acceptance and a reviewed promotion change')
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f: f.write('version=' + version + '\n')
@@ -56,6 +58,17 @@ jobs:
         run: |
           python scripts/package-release.py --version "$VERSION" --output artifacts/firmware
           node scripts/check-package.mjs artifacts/firmware
+          for role in tx rx; do
+            python scripts/package-release.py --version "$VERSION" --role "$role" --output "artifacts/firmware-$role"
+            node scripts/check-package.mjs "artifacts/firmware-$role"
+          done
+          python - <<'PY'
+          import hashlib, pathlib, shutil
+          output = pathlib.Path('artifacts/firmware')
+          for role in ['tx', 'rx']:
+              shutil.make_archive(str(output / ('thinknode-m5-' + role)), 'zip', 'artifacts/firmware-' + role)
+          (output / 'SHA256SUMS').write_text(''.join(f'{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}\n' for p in sorted(output.iterdir()) if p.name != 'SHA256SUMS'))
+          PY
           firmware/tests/config/run.sh
           python firmware/tests/ota/run.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -67,7 +80,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
 
   release:
-    if: github.event_name == 'push' && github.ref_type == 'tag'
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -81,13 +94,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          TAG: ${{ github.ref_name }}
+          TAG: v${{ needs.build.outputs.version }}
+          REF_TYPE: ${{ github.ref_type }}
           COMMIT: ${{ github.sha }}
         run: |
           cat > notes.md <<'EOF'
           Experimental ThinkNode M5 candidate. Device UI review and physical hardware acceptance remain required. No device flashing has been performed by CI. Not a stable or hardware-validated release.
 
-          Use the browser installer at https://uberclicker.com/flash/ after the website mirror deployment completes. Select Experimental prereleases. USB programming uses CH340 serial; native USB keyboard/MIDI is unverified. Preserve mode requires an identical partition layout; full erase destroys settings and credentials.
+          Install directly from the desktop Companion's Install tab. The browser installer at https://uberclicker.com/flash/ requires the published assets to be mirrored and deployed to the live website. Select Prereleases. These install configurable firmware: select Transmitter or Receiver in Configure afterward. USB programming uses CH340 serial; native USB keyboard/MIDI is unverified. Preserve mode requires an identical partition layout; full erase destroys settings and credentials.
+
+          For command-line recovery with a fixed role, download thinknode-m5-tx.zip or thinknode-m5-rx.zip. Each archive includes its own exact flash images, manifest, checksums, source and licenses. Do not mix images between packages. Top-level binary assets and manifest.json are the configurable build used by the installers and OTA.
 
           Opt-in OTA: after a one-time USB installation of the two-slot layout, connect by USB serial and choose Firmware update with Wi-Fi configured. Use the clicker buttons to Check, review the experimental version, then Install. Only releases matching the installed settings schema and protocol are offered over OTA; update TX and RX together for the broadcast-radio firmware.
 
@@ -95,4 +111,7 @@ jobs:
 
           UberClicker's source is MIT. The linked firmware includes GPLv3 GxEPD2 and is distributed under GPLv3 terms; firmware-source.zip and COPYING-GPL-3.txt accompany the binary assets. See THIRD_PARTY_NOTICES.md for dependency attribution.
           EOF
-          gh release create "$TAG" firmware/* --verify-tag --target "$COMMIT" --prerelease --title "UberClicker $TAG (experimental)" --notes-file notes.md
+          args=()
+          if [ "$REF_TYPE" = tag ]; then args+=(--verify-tag); fi
+          gh release create "$TAG" firmware/* "${args[@]}" --target "$COMMIT" --draft --prerelease --latest=false --title "UberClicker $TAG (experimental)" --notes-file notes.md
+          gh release edit "$TAG" --draft=false

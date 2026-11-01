@@ -115,15 +115,24 @@ test('country endpoint is private and preserves existing asset and app routes', 
   assert.equal(await asset.text(), 'asset');
 });
 
-test('testing notices are removed, with both paths and the requested headline present', async () => {
+test('testing notices are removed, with three connection options and the requested headline present', async () => {
   const html = await readFile(new URL('./dist/index.html', import.meta.url), 'utf8');
   assert.match(html, /Slide Control<br>Done Right/);
   assert.match(html, /Robust\. Flexible\.<br>Open Source\./);
-  assert.match(html, /Cloud path: Transmitter via Wi-Fi to Cloud/);
-  assert.match(html, /Local path: Transmitter via LoRa to Receiver/);
+  assert.match(html, /Cloud to the Companion App/);
+  assert.match(html, /LoRa receiver to keyboard control/);
+  assert.match(html, /OSC over Wi-Fi to slide software/);
   assert.match(html, /class="pro-badge"/);
   assert.match(html, /id="advanced-diagram"[^>]+hidden/);
   const installer = await readFile(new URL('./dist/flash/index.html', import.meta.url), 'utf8');
   assert.doesNotMatch(html + installer, /experimental|pending|hardware.validation|acceptance|in.testing/i);
   assert.match(installer, /id="erase-consent"/);
+});
+
+test('legacy installer entry points redirect to the web app Install page', async () => {
+  for (const path of ['/flash', '/flash/']) {
+    const response = await worker.fetch(new Request(`https://uberclicker.com${path}`), {});
+    assert.equal(response.status, 302);
+    assert.equal(response.headers.get('location'), 'https://app.uberclicker.com/#install');
+  }
 });

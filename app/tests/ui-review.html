@@ -5,11 +5,12 @@ if(params.has('mobile'))Object.defineProperty(navigator,'userAgent',{value:'Mozi
 if(params.has('unsupported'))Object.defineProperty(navigator,'userAgent',{value:'Mozilla/5.0 (Macintosh) Firefox/140.0'});
 const room='a'.repeat(32), token='b'.repeat(64);
 const account={devices:params.has("empty")?[]:[{id:"f".repeat(32),name:"Stage clicker",channels:[room],last_seen:Date.now()-3600000},{id:"9".repeat(32),name:"Phone clicker",channels:[room],last_seen:Date.now()-120000}],user:{name:'UI Review',email:'review@example.test'},pro:true,billing:{hasCustomer:true,status:'active',until:Date.now()+86400000,trialUsed:true},rooms:params.has('empty')?[]:[{id:room,name:'Main stage',created_at:Date.now(),revoked:0,status:'active',pro_until:Date.now()+86400000,trial_used:1}]};
-account.rooms.push({id:"1".repeat(32),name:"Backstage",revoked:0,status:"active",pro_until:Date.now()+86400000,trial_used:1});
+account.rooms.push({id:"1".repeat(32),name:"Backstage",revoked:0,status:params.has("unpaid")?"free":"active",pro_until:params.has("unpaid")?0:Date.now()+86400000,trial_used:1});
 let clickerLinked=params.has("paired");
 let reconnectUnlinked=params.has("unlinked");
 let loggedIn=!params.has('login');
 window.fetch=async(path,options)=>{
+ if(String(path).startsWith("https://api.uberclicker.com/"))path=new URL(path).pathname;
  let data={};
  if(path==='/api/clickers/routes'&&params.has('routeerror'))return Response.json({error:'Could not save channels. Please retry.'},{status:503});
  if(path==='/api/clickers/routes'){for(const r of JSON.parse(options.body).routes)account.devices.find(d=>d.id===r.id).channels=r.channels;}
@@ -23,10 +24,12 @@ window.fetch=async(path,options)=>{
  else if(path==='/api/auth/get-session')data=loggedIn?{user:account.user}:null;
  else if(path==='/v1/rooms'){account.rooms.unshift({id:'c'.repeat(32),name:JSON.parse(options.body).name,revoked:0,status:'free',pro_until:0,trial_used:0});data={v:1,room:'c'.repeat(32),txToken:token,clientToken:'d'.repeat(64)};}
  else if(path==='/api/auth/sign-out')loggedIn=false;
+ else if(path==='/api/auth/sign-in/email-otp'){if(JSON.parse(options.body).otp!=='123456')return Response.json({message:'Invalid code. Try again.'},{status:400});loggedIn=true;}
  else if(path==='/api/auth/sign-in/email')loggedIn=true;
  else if(path==='/api/auth/update-user')account.user.name=JSON.parse(options.body).name;
- else if(path==='/api/billing/portal')data={url:location.origin+location.pathname+'?billing-preview'};
- else if(path==='/api/billing/checkout')throw Error('Review only: no billing action');
+ else if(path==='/api/billing/portal')data={url:surface==='desktop'?'https://billing.stripe.com/p/session/preview':location.origin+location.pathname+'?billing-preview'};
+ else if(path==='/api/billing/checkout')data={url:'https://checkout.stripe.com/c/pay/preview'};
+ else if(path==='/api/billing/sync'){document.body.dataset.billingSynced='true';account.rooms.forEach(room=>{room.status='active';room.pro_until=Date.now()+86400000;});}
  return Response.json(data);
 };
 class FakeSocket {
@@ -38,11 +41,11 @@ class FakeSocket {
 }
 window.WebSocket=FakeSocket;
 navigator.vibrate=()=>{document.body.dataset.hapticTaps=String(Number(document.body.dataset.hapticTaps||0)+1);return true;};
-if(surface==='receiver'){
+if(surface==='receiver'||surface==='desktop'){
  window.isTauri=true;
  const mapping=(key,address)=>({keyboard:{enabled:true,key,modifiers:[]},osc:{enabled:false,host:'127.0.0.1',port:8000,address,value:1}});
  const view={settings:{proPresenter:{enabled:false,host:'127.0.0.1',port:50001,assignments:[]},outputOnStartup:true,previous:mapping('LeftArrow','/previous'),next:mapping('RightArrow','/next')},status:{connected:!params.has('empty'),armed:false,room:params.has('empty')?'':room,received:0,lastEvent:'No clicks received',error:'',relayRttMs:24,lastTransmitter:'aabbccddeeff'},api:'https://api.uberclicker.com'};
- mockIPC((cmd,args)=>{switch(cmd){case 'view':return structuredClone(view);case 'autostart_enabled':return false;case 'arm':view.status.armed=args.armed;return;case 'save_settings':view.settings=args.settings;return;case 'set_output_on_startup':view.settings.outputOnStartup=args.enabled;return;case 'set_start_on_boot':return args.enabled;case 'disconnect':view.status.connected=false;view.status.armed=false;return;case 'reconnect':case 'import_room':view.status.connected=true;view.status.room=room;return;case 'pairing':return JSON.stringify({v:1,room,token});case 'propresenter_presentations':return [{id:'test-presentation',name:'Sunday service',library:'Main library'}];default:throw Error('Review only: '+cmd)}});
+ mockIPC(async(cmd,args)=>{switch(cmd){case 'account_request': { const response=await window.fetch(args.path,args.body===null?{}:{body:JSON.stringify(args.body)}); const result=await response.json();if(!response.ok)throw result.message||result.error;return result; } case 'account_open_external':document.body.dataset.externalUrl=args.url;return;case 'view':return structuredClone(view);case 'autostart_enabled':return false;case 'arm':view.status.armed=args.armed;return;case 'save_settings':view.settings=args.settings;return;case 'set_output_on_startup':view.settings.outputOnStartup=args.enabled;return;case 'set_start_on_boot':return args.enabled;case 'disconnect':view.status.connected=false;view.status.armed=false;return;case 'reconnect':case 'import_room':view.status.connected=true;view.status.room=room;return;case 'pairing':return JSON.stringify({v:1,room,token});case 'propresenter_presentations':return [{id:'test-presentation',name:'Sunday service',library:'Main library'}];default:throw Error('Review only: '+cmd)}});
 }
 await import('/src/main.ts');
 </script></body></html>
