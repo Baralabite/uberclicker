@@ -102,7 +102,7 @@
 .software-logos { display:flex; align-items:center; justify-content:space-around; flex-shrink:0; width:1280px; list-style:none; margin:0; padding:12px 24px; }
 .software-logos li { display:flex; align-items:center; justify-content:center; gap:12px; width:220px; height:48px; color:#606060; font-size:27px; font-weight:600; white-space:nowrap; }
 .software-logos img { display:block; object-fit:contain; filter:grayscale(1); opacity:.72; }
-.software-logos .software-propresenter { filter:grayscale(1) brightness(0); opacity:.6; }
+.software-logos .software-wordmark { filter:grayscale(1) brightness(0); opacity:.6; }
 .software-pause:checked ~ .software-viewport .software-track,
 .software-viewport:hover .software-track { animation-play-state:paused; }
 @keyframes software-scroll { to { transform:translateX(-50%); } }

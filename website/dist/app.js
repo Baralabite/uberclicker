@@ -1,13 +1,6 @@
-function previewAction(action) {
-  document.querySelector('#last-action').textContent = `Last: ${action}`;
-  document.querySelector('#last-receipt').textContent = 'Broadcast · simulated';
-  document.querySelector('#action-feedback').textContent = `${action} action. Broadcast simulated in this demo.`;
-}
-document.querySelector('#previous-cue').addEventListener('click', () => previewAction('Previous'));
-document.querySelector('#next-cue').addEventListener('click', () => previewAction('Next'));
 const buyCountry = document.querySelector('#buy-country');
 function updateBuyLinks() {
-  document.querySelectorAll('.buy-options').forEach(list => {
+  document.querySelectorAll('#buy .buy-options').forEach(list => {
     list.hidden = list.id !== buyCountry.value;
   });
 }

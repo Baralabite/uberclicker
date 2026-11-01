@@ -38,23 +38,18 @@ assert.match(html, /<option value="buy-au" selected>Australia<\/option>/, 'Austr
 node('#buy-country').value = 'buy-au';
 const document = {
   querySelector: node,
-  querySelectorAll: selector => selector === '.buy-options' ? buyLists : []
+  querySelectorAll: selector => selector === '#buy .buy-options' ? buyLists : selector === '.buy-options' ? [...buyLists, node('#downloads-list')] : []
 };
 vm.runInNewContext(readFileSync(path.join(root, 'app.js'), 'utf8'), { document, setTimeout() {} });
-node('#next-cue').events.click();
-assert.equal(node('#last-action').textContent, 'Last: Next');
-assert.match(node('#last-receipt').textContent, /simulated/);
-node('#previous-cue').events.click();
-assert.equal(node('#last-action').textContent, 'Last: Previous');
 assert.match(html, /href="https:\/\/app\.uberclicker\.com\/#configure"/);
 assert.doesNotMatch(html, /name="connection"/, 'Setup links directly to the app instead of offering unavailable transports');
 assert.doesNotMatch(html, /Claim and configure|Local BLE setup|No acknowledgement yet/);
-assert.match(node('#last-receipt').textContent, /Broadcast/);
 assert(!/023|82%|LoRa paired|cue-count/.test(html), 'No invented device status or cue counter');
 assert.deepEqual(buyLists.filter(list => !list.hidden).map(list => list.id), ['buy-au']);
 for (const region of ['buy-nz', 'buy-us', 'buy-eu', 'buy-au']) {
   node('#buy-country').value = region;
   node('#buy-country').events.change();
   assert.deepEqual(buyLists.filter(list => !list.hidden).map(list => list.id), [region], 'Only the selected region is shown');
+  assert(!node('#downloads-list').hidden, 'Hardware region selection must not hide Companion downloads');
 }
-console.log('Pass: local assets, anchors, unique ids, sample actions, direct setup links, truthful demo status, buying regions and three links per region.');
+console.log('Pass: local assets, anchors, unique ids, direct setup links, buying regions and three links per region.');

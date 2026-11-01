@@ -89,10 +89,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          shopt -s globstar nullglob
           assets=()
           for extension in dmg exe deb AppImage; do
-            matches=(packages/**/*."$extension")
+            matches=()
+            while IFS= read -r -d '' file; do
+              matches+=("$file")
+            done < <(find packages -type f -name "*.$extension" -print0)
             if [ "${#matches[@]}" -ne 1 ]; then
               echo "Expected one .$extension installer, found ${#matches[@]}" >&2
               exit 1

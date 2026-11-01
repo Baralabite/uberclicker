@@ -50,3 +50,18 @@ See `docs/website-design.md` for decisions, sources, checks and known limits. `q
 - The procedural mesh and fallback SVG were authored for this preview. Manufacturer manuals, photographs and scraped pages are not redistributed.
 - esptool-js 0.7.0 (Apache-2.0) and pako 2.1.0 (MIT/Zlib): `dist/flash/vendor/`.
 - App dependency notices and the project license are copied with the app bundle.
+
+### Presentation software marquee
+
+The homepage logo strip uses local assets in `dist/assets/software/`, displayed
+in greyscale with CSS. It pauses on hover or with the labelled checkbox; reduced
+motion displays one wrapping, stationary set. The second animated set is hidden
+from assistive technology. No JavaScript or dependencies are needed.
+
+Logo sources (retrieved 2026-11-01; trademarks remain with their respective owners):
+
+- `propresenter.svg`: [ProPresenter](https://www.propresenter.com/), official navigation wordmark.
+- `easyworship.svg`: [EasyWorship](https://easyworship.com/), official inline wordmark, with its styles bundled and SVG viewBox casing normalized for standalone use.
+- `proclaim.svg`: [Proclaim](https://proclaim.logos.com/), official navigation wordmark.
+- `openlp.png`: [OpenLP](https://openlp.org/assets/images/logo.png), official application icon.
+- `freeshow.png`: [FreeShow](https://freeshow.app/images/favicon.png), official application icon.
