@@ -5,7 +5,7 @@
 - Marketing: [uberclicker.com](https://uberclicker.com) and [www.uberclicker.com](https://www.uberclicker.com), served by `uberclicker-website`.
 - App/accounts: [app.uberclicker.com](https://app.uberclicker.com), served by `uberclicker-cloud` with D1, Durable Objects and Cloudflare Email Service.
 - Relay: `wss://api.uberclicker.com`; active Pro entitlement required per destination.
-- Pricing: AUD $3/month or $25/year with one calendar month free. Stripe Checkout, signed webhooks and customer portal are configured. The user confirmed live magic-link sign-in and Checkout.
+- Pricing: AUD $25/year per channel with one calendar month free. Stripe Checkout, signed webhooks and customer portal are configured. The user confirmed live magic-link sign-in and Checkout.
 - The Login button links to the account app; old `/app` links redirect to device setup there.
 
 The apex A and www CNAME records are now **proxied** through Cloudflare. Worker routes `uberclicker.com/*` and `www.uberclicker.com/*` serve the new assets without contacting the legacy GitHub origin. Preserve email DNS records. Normal HTTPS requests to both domains returned HTTP 200; certificate verification was not bypassed.
@@ -24,6 +24,12 @@ npm test --prefix cloud
 ```
 
 Secrets are encrypted in the Worker, not in this repository. See [cloud setup](cloud.md) for auth/Stripe configuration. Google sign-in awaits OAuth credentials. GitHub Actions' existing Pages job still builds/mirrors legacy assets; pushing source alone does not update Cloudflare. No new CI deployment credential was created.
+
+Annual-only pricing was deployed on 1 November 2026:
+
+- Cloud Worker: `ed0d7271-8ac5-40ee-b41e-88b079c5fb6f`; website Worker: `52d89e94-f062-4a73-912d-6bcd32f6f303`.
+- Stripe's AUD $25/year price is the product default; the monthly price is archived. The product description and checkout retain the first calendar month free, per channel. No existing subscriptions required migration.
+- Apex/www pricing and the deployed app bundle were verified. All 48 app tests, 19 cloud tests, type checks, build and website integrity checks passed. No live payment or renewal was performed.
 
 The simplification update was deployed on 1 November 2026 from commit `dbc7962`:
 

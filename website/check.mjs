@@ -6,6 +6,16 @@ import vm from 'node:vm';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), 'dist');
 const html = readFileSync(path.join(root, 'index.html'), 'utf8');
+const downloads = html.match(/<section id="downloads"[\s\S]*?<\/section>/)?.[0];
+assert(downloads, 'The main page must offer desktop downloads');
+for (const platform of ['macOS', 'Windows', 'Linux']) {
+  assert(downloads.includes(`Download for ${platform}`), `Missing ${platform} download`);
+}
+assert.equal([...downloads.matchAll(/href="https:\/\/github\.com\/Baralabite\/uberclicker\/releases\?q=companion-build"/g)].length, 3, 'Desktop downloads must open Companion GitHub releases');
+assert.match(html, /id="annual-price">\$25<\/strong>/);
+assert.match(html, /id="price-code">AUD<\/span> \/ year/);
+assert.match(html, /Your first month is free\./);
+assert.doesNotMatch(html, /\$3|AUD \/ month|monthly/i, 'Only annual pricing is advertised');
 const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]);
 assert.equal(new Set(ids).size, ids.length, 'HTML ids must be unique');
 for (const [, anchor] of html.matchAll(/href="#([^"]+)"/g)) {

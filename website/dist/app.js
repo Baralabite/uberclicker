@@ -1,7 +1,7 @@
 function previewAction(action) {
   document.querySelector('#last-action').textContent = `Last: ${action}`;
   document.querySelector('#last-receipt').textContent = 'Broadcast · simulated';
-  document.querySelector('#action-feedback').textContent = `${action} action. Broadcast simulated for this preview. Receiver delivery is unknown.`;
+  document.querySelector('#action-feedback').textContent = `${action} action. Broadcast simulated in this demo.`;
 }
 document.querySelector('#previous-cue').addEventListener('click', () => previewAction('Previous'));
 document.querySelector('#next-cue').addEventListener('click', () => previewAction('Next'));

@@ -35,10 +35,10 @@ export async function syncBilling(env: Env, customer: string) {
   }
 }
 export async function checkout(env: Env, user: { id: string; email: string }, interval: string, roomId: string) {
-  if (!["month", "year"].includes(interval)) throw new Error("Choose monthly or yearly billing");
+  if (interval !== "year") throw new Error("Only yearly billing is available: AUD $25/year per channel");
   const room = await env.DB.prepare("SELECT * FROM rooms WHERE id = ? AND user_id = ? AND revoked = 0").bind(roomId, user.id).first<{ id: string; status: string; pro_until: number; trial_used: number }>();
   if (!room) throw new Error("Channel not found");
-  const api = stripe(env), price = interval === "month" ? env.STRIPE_MONTHLY_PRICE : env.STRIPE_YEARLY_PRICE;
+  const api = stripe(env), price = env.STRIPE_YEARLY_PRICE;
   if (!env.STRIPE_SECRET_KEY || !env.STRIPE_WEBHOOK_SECRET || !price) throw new Error("Subscriptions are not available yet");
   await env.DB.prepare("INSERT OR IGNORE INTO billing (user_id) VALUES (?)").bind(user.id).run();
   let billing = (await getBilling(env, user.id))!;

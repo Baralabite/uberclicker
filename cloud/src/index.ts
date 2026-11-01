@@ -23,7 +23,7 @@ export interface Env {
   GOOGLE_CLIENT_SECRET?: string;
   STRIPE_SECRET_KEY: string;
   STRIPE_WEBHOOK_SECRET: string;
-  STRIPE_MONTHLY_PRICE: string;
+  STRIPE_MONTHLY_PRICE?: string; // Archived price, retained only to reconcile legacy subscriptions.
   STRIPE_YEARLY_PRICE: string;
 }
 type Role = "tx" | "client" | "manual";

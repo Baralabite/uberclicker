@@ -17,7 +17,14 @@ Run the small behavior/integrity check with:
 
 ```sh
 node website/check.mjs
+node --test website/ui.test.mjs website/flash.test.mjs
 ```
+
+The connection diagram has Simple and Advanced views. Pro pricing converts the
+AUD $25 annual charge using [Frankfurter reference rates](https://frankfurter.dev/).
+The Worker supplies a visitor country without caching it; static previews fall
+back to the browser region. Visitors can also choose a currency. Unsupported
+regions or failed rate requests retain the AUD price. Checkout remains in AUD.
 
 Before serving, run `npm ci --prefix app` and `node scripts/build-website.mjs` to
 copy the built app and device preview. The homepage demonstrations remain labelled

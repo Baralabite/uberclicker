@@ -83,7 +83,9 @@ test('verified write, failed readback, failed transport', async () => {
 test('unsupported browser executes safely with an empty published index', async () => {
   const originals = new Map(['document', 'navigator', 'isSecureContext', 'Option', 'fetch'].map(k => [k, Object.getOwnPropertyDescriptor(globalThis, k)]));
   const nodes = new Map();
-  const get = id => { if (!nodes.has(id)) nodes.set(id, { value: id === 'channel' ? 'stable' : '', events: {}, addEventListener(type, handler) { this.events[type] = handler; }, replaceChildren() {}, add() {} }); return nodes.get(id); };
+  const html = await readFile(new URL('./dist/flash/index.html', import.meta.url), 'utf8');
+  const ids = new Set([...html.matchAll(/id="([^"]+)"/g)].map(match => match[1]));
+  const get = id => { assert(ids.has(id), `Missing installer control: ${id}`); if (!nodes.has(id)) nodes.set(id, { value: id === 'channel' ? 'stable' : '', events: {}, addEventListener(type, handler) { this.events[type] = handler; }, replaceChildren() {}, add() {} }); return nodes.get(id); };
   try {
     Object.defineProperty(globalThis, 'navigator', { configurable: true, value: {} });
     Object.assign(globalThis, { document: { getElementById: get }, isSecureContext: false, Option: class {}, fetch: async () => ({ ok: true, headers: new Map(), async arrayBuffer() { return new TextEncoder().encode('{"indexVersion":1,"releases":[]}').buffer; } }) });

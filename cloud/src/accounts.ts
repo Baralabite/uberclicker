@@ -11,7 +11,7 @@ export const json = (body: unknown, status = 200) => Response.json(body, { statu
 export async function accounts(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url), path = url.pathname;
   if (path === "/api/billing/webhook" && request.method === "POST") return webhook(request, env);
-  if (path === "/api/config") return json({ google: !!(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET), email: env.EMAIL_ENABLED === "true", billing: !!(env.STRIPE_SECRET_KEY && env.STRIPE_WEBHOOK_SECRET && env.STRIPE_MONTHLY_PRICE && env.STRIPE_YEARLY_PRICE) });
+  if (path === "/api/config") return json({ google: !!(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET), email: env.EMAIL_ENABLED === "true", billing: !!(env.STRIPE_SECRET_KEY && env.STRIPE_WEBHOOK_SECRET && env.STRIPE_YEARLY_PRICE) });
   if (url.origin !== env.APP_ORIGIN) return json({ error: "Use app.uberclicker.com for your account" }, 403);
   if (!["GET", "HEAD"].includes(request.method) && request.headers.get("Origin") !== env.APP_ORIGIN) return json({ error: "Invalid origin" }, 403);
   if (Number(request.headers.get("Content-Length") ?? 0) > 16384) return json({ error: "Request too large" }, 413);

@@ -11,7 +11,7 @@ establish Wi-Fi, TLS, input or latency performance on a real M5.
 ## Connect
 
 1. Sign in at [app.uberclicker.com](https://app.uberclicker.com) with an emailed sign-in link.
-2. Create a Cloud Channel, save its one-time Client Companion code, and activate its plan. Billing is per channel: AUD $3/month or $25/year, with the first month free.
+2. Create a Cloud Channel, save its one-time Client Companion code, and activate its plan. Billing is per channel: AUD $25/year, with the first month free.
 3. On an M5, use **Configure** to save Wi-Fi and enable Cloud actions. The clicker connects and displays an eight-character code. On a phone or browser, open **Cue** to display a code automatically.
 4. In **Cloud → Cue Remote → Add**, enter that code. It expires after ten minutes and can be claimed only once. Linking associates the clicker with your account; it does not start a subscription.
 5. Tap a clicker in the **Cue Remote** table, tick the channels it should send to, and **Save**. **Unlink** is in the same dialog. Use **Add Channel** above the channels table to create another channel; tap a channel to rename or revoke it.
@@ -173,8 +173,24 @@ Rust stable and the platform Tauri prerequisites are required. Windows uses
 WebView2; Linux uses WebKitGTK and a running Secret Service credential store.
 The macOS build produces `.app` and `.dmg`; native Windows/Linux runners produce
 their installers. macOS signing/notarization and Windows signing require the
-release owner's certificates. The build workflow packages artifacts without
-publishing a release. No signing identity is configured here. The Cloudflare account uses Workers Paid for outbound login email.
+release owner's certificates. No signing identity is configured here. The Cloudflare account uses Workers Paid for outbound login email.
+
+The **Cloud and desktop companion** GitHub Actions workflow tests and packages
+the desktop app on pull requests and relevant pushes to `main`. After all cloud
+and desktop checks pass on `main`, it publishes a GitHub prerelease tagged
+`companion-build-<run ID>-<attempt>`. You can also publish by running the workflow
+manually on `main`; dispatches on other branches only build and test. Each release
+records its source commit and contains a universal macOS `.dmg` (Apple silicon
+and Intel), a Windows x64 `.exe`, and Linux x64 `.deb` and `.AppImage` installers.
+CI artifacts remain available for each platform. A draft becomes public only
+after all four installers have uploaded successfully.
+
+Download from the main page's **Downloads** section or
+[Companion releases](https://github.com/Baralabite/uberclicker/releases?q=companion-build).
+Expand **Assets** on the newest Companion preview. These builds are unsigned and
+macOS builds are not notarized, so the OS may block installation or show a publisher
+warning. Companion releases are separate from firmware prerelease tags and are
+not offered by the firmware installer or OTA feed.
 
 Both targets use `app/src`: the shared shell, device editor, receiver UI and serial
 protocol. Tauri embeds `app/dist`; `companion` contains only the desktop build
@@ -185,7 +201,7 @@ output continue in Rust independently of the displayed section or hidden window.
 
 `cloud/wrangler.jsonc` publishes the relay at `api.uberclicker.com` and the shared app/account API at `app.uberclicker.com`. The older `/setup/` entry remains compatible. D1 is read on connection/account activity, not on each click. The billing Durable Object serializes checkout, revocation and webhook reconciliation per account. Webhooks verify Stripe signatures and reread current subscriptions, so delayed events cannot restore canceled access.
 
-For a fresh deployment, apply D1 migrations with `npx wrangler d1 migrations apply uberclicker-accounts --remote`, then set encrypted secrets `BETTER_AUTH_SECRET`, `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` using `wrangler secret put`. Keep credentials out of source control. Stripe prices and the fixed application origin are in `wrangler.jsonc`. The live restricted key has customer, Checkout, subscription and billing portal write access and price read access.
+For a fresh deployment, apply D1 migrations with `npx wrangler d1 migrations apply uberclicker-accounts --remote`, then set encrypted secrets `BETTER_AUTH_SECRET`, `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` using `wrangler secret put`. Keep credentials out of source control. The annual Stripe price and fixed application origin are in `wrangler.jsonc`. Checkout offers only AUD $25/year per channel. The archived monthly price remains configured solely for legacy subscription reconciliation; it cannot be selected for a new checkout. The live restricted key has customer, Checkout, subscription and billing portal write access and price read access.
 
 The Stripe webhook is `https://app.uberclicker.com/api/billing/webhook`, listening to Checkout completion, subscription created/updated/deleted/paused/resumed and invoice paid/payment_failed. Enable email sending for `uberclicker.com` in Cloudflare Email Service before setting `EMAIL_ENABLED=true`.
 

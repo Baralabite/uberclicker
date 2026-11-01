@@ -4,25 +4,26 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f5f7fa">
-  <meta name="description" content="UberClicker: free USB setup and local cue control, with Pro Cloud Channels for AUD $3/month or $25/year. One month free.">
-  <title>UberClicker — Two buttons. Your next cue.</title>
+  <meta name="description" content="UberClicker: free USB setup and local cue control, with Pro Cloud Channels for AUD $25/year per channel. One month free.">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <title>UberClicker — Slide Control Done Right</title>
   <link rel="preload" href="assets/barlow-condensed-bold.ttf" as="font" type="font/ttf" crossorigin>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
   <header class="site-header wrap">
-    <a class="wordmark" href="#" aria-label="UberClicker home"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><path d="M2 2h9v9H2zM15 15h9v9h-9z" fill="currentColor"/><path d="M15 2h9v9h-9zM2 15h9v9H2z" fill="none" stroke="currentColor" stroke-width="2"/></svg><span translate="no">UberClicker</span></a>
-    <nav aria-label="Main navigation"><a href="flash/">Install</a><a href="https://app.uberclicker.com/#configure">Configure</a><a href="#buy">Buy hardware</a><a class="login-link" href="https://app.uberclicker.com">Account</a></nav>
-    <span class="preview-label"><span aria-hidden="true"></span>Experimental</span>
+    <a class="wordmark" href="#" aria-label="UberClicker home"><svg width="26" height="26" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" rx="52" fill="#2c50c8"/><path d="M112 68 44 128l68 60zm32 0v120l68-60z" fill="#fff"/></svg><span translate="no">UberClicker</span></a>
+    <nav aria-label="Main navigation"><a href="flash/">Install</a><a href="#downloads">Downloads</a><a href="https://app.uberclicker.com/#configure">Configure</a><a href="#buy">Buy hardware</a><a class="login-link" href="https://app.uberclicker.com">Account</a></nav>
   </header>
   <main id="main">
     <section class="hero wrap" aria-labelledby="hero-heading">
       <div class="hero-copy">
-        <h1 id="hero-heading">Two buttons.<br>Your next cue.</h1>
-        <p class="hero-description">Control presentations with two buttons. Connect over LoRa, Bluetooth, Wi-Fi or the cloud.</p>
+        <h1 id="hero-heading">Slide Control<br>Done Right</h1>
+        <p class="hero-description">Robust. Flexible.<br>Open Source.</p>
         <div class="hero-actions"><a class="button primary" href="flash/">Install firmware</a><a class="text-link" href="https://app.uberclicker.com/#configure">Configure a device</a></div>
-        <p class="hero-footnote">Built around the ThinkNode M5.<br>Experimental firmware and USB serial setup.<br>Device UI and hardware acceptance are pending.</p>
+        <p class="hero-footnote">Free local control. Optional Cloud Channels.</p>
       </div>
       <figure class="device-stage" aria-labelledby="device-caption">
         <div class="device-viewport" id="device-viewport">
@@ -30,35 +31,102 @@
           <canvas id="device-canvas" aria-hidden="true"></canvas>
         </div>
         <figcaption id="device-caption"><span>ThinkNode M5</span><span id="model-status" role="status">Loading 3D preview…</span></figcaption>
-        <p class="model-note">Illustrative model, not manufacturing CAD. Body: 82 × 51.6 × 26.3 mm.</p>
+        <p class="model-note">ThinkNode M5 · 82 × 51.6 × 26.3 mm · Illustration</p>
       </figure>
     </section>
-    <section id="system" class="system-section wrap section-space" aria-labelledby="system-heading">
-      <div class="section-heading"><h2 id="system-heading">Choose your connection</h2><p>Use a transmitter and receiver for a LoRa link. Or use one transmitter on its own for experimental direct outputs.</p></div>
-      <div class="route" aria-label="Experimental route: transmitter over LoRa to receiver, then BLE keyboard to computer">
-        <div class="route-stop"><svg viewBox="0 0 70 80" aria-hidden="true"><path d="M20 24V4M19 24h32a5 5 0 0 1 5 5v42a5 5 0 0 1-5 5H19a5 5 0 0 1-5-5V29a5 5 0 0 1 5-5ZM25 35h20v20H25ZM47 24v-8h7v8"/><path d="M26 65h17"/></svg><h3>Transmitter</h3><p>In your hand.</p></div>
-        <div class="route-link"><span>LoRa</span><div aria-hidden="true"></div></div>
-        <div class="route-stop"><svg viewBox="0 0 70 80" aria-hidden="true"><path d="M20 24V4M19 24h32a5 5 0 0 1 5 5v42a5 5 0 0 1-5 5H19a5 5 0 0 1-5-5V29a5 5 0 0 1 5-5ZM25 35h20v20H25ZM47 24v-8h7v8"/><path d="M26 65h17"/></svg><h3>Receiver</h3><p>Near your computer.</p></div>
-        <div class="route-link planned"><span>BLE keyboard*</span><div aria-hidden="true"></div></div>
-        <div class="route-stop"><svg viewBox="0 0 90 80" aria-hidden="true"><path d="M11 11h68v47H11zM45 58v11M29 70h32M21 22h48M21 32h28M21 42h15"/></svg><h3>Your computer</h3><p>Keyboard or OSC input.</p></div>
+    <section class="software-banner wrap" aria-label="Presentation software">
+      <p class="software-caption">Your slides. Your software.</p>
+      <input class="software-pause" type="checkbox" id="pause-software" aria-controls="software-track">
+      <label class="software-pause-label" for="pause-software">Pause scrolling</label>
+      <div class="software-viewport">
+        <div class="software-track" id="software-track">
+          <ul class="software-logos">
+            <li><img class="software-wordmark software-propresenter" src="assets/software/propresenter.svg" width="200" height="29" alt="ProPresenter"></li>
+            <li><img class="software-wordmark" src="assets/software/easyworship.svg" width="200" height="18" alt="EasyWorship"></li>
+            <li><img class="software-wordmark" src="assets/software/proclaim.svg" width="180" height="35" alt="Proclaim"></li>
+            <li><img src="assets/software/openlp.png" width="42" height="42" alt=""><span>OpenLP</span></li>
+            <li><img src="assets/software/freeshow.png" width="42" height="42" alt=""><span>FreeShow</span></li>
+          </ul>
+          <ul class="software-logos" aria-hidden="true">
+            <li><img class="software-wordmark software-propresenter" src="assets/software/propresenter.svg" width="200" height="29" alt=""></li>
+            <li><img class="software-wordmark" src="assets/software/easyworship.svg" width="200" height="18" alt=""></li>
+            <li><img class="software-wordmark" src="assets/software/proclaim.svg" width="180" height="35" alt=""></li>
+            <li><img src="assets/software/openlp.png" width="42" height="42" alt=""><span>OpenLP</span></li>
+            <li><img src="assets/software/freeshow.png" width="42" height="42" alt=""><span>FreeShow</span></li>
+          </ul>
+        </div>
       </div>
-      <p class="route-caveat"><strong>*Hardware validation required.</strong> BLE keyboard is implemented in the experimental firmware. Native USB keyboard is unavailable; the M5’s USB-C uses a CH340 serial bridge.</p>
-      <div class="direct-output"><div><h3>One device. Direct control.</h3><p>Experimental OSC over UDP, BLE MIDI, raw UDP and TCP outputs let a standalone transmitter work without a LoRa receiver.</p></div><div class="protocols" aria-label="Experimental output protocols"><span>OSC</span><span>BLE MIDI</span><span>UDP</span><span>TCP</span></div><span class="status-tag">Experimental</span></div>
+    </section>
+    <section id="system" class="system-section wrap section-space" aria-labelledby="system-heading">
+      <div class="section-heading"><h2 id="system-heading">Two ways to connect</h2><p>Go through the cloud, or keep the connection local.</p></div>
+      <div class="diagram-tabs" role="tablist" aria-label="Connection diagram detail" hidden><button type="button" id="simple-tab" role="tab" aria-controls="simple-diagram" aria-selected="true">Simple</button><button type="button" id="advanced-tab" role="tab" aria-controls="advanced-diagram" aria-selected="false" tabindex="-1">Advanced</button></div>
+      <div id="simple-diagram" role="tabpanel" aria-labelledby="simple-tab" tabindex="0">
+      <div class="routes">
+        <div class="route" role="group" aria-label="Cloud path: Transmitter via Wi-Fi to Cloud, then over the internet to Computer">
+          <div class="route-stop"><svg viewBox="0 0 70 80" aria-hidden="true"><path d="M20 24V4M19 24h32a5 5 0 0 1 5 5v42a5 5 0 0 1-5 5H19a5 5 0 0 1-5-5V29a5 5 0 0 1 5-5ZM25 35h20v20H25ZM47 24v-8h7v8M26 65h17"/></svg><h3>Transmitter</h3><p>In your hand</p></div><div class="route-link"><span>Wi-Fi</span><div aria-hidden="true"></div></div><div class="route-stop"><svg viewBox="0 0 90 80" aria-hidden="true"><path d="M25 59H70a15 15 0 0 0 2-30 24 24 0 0 0-46-4A17 17 0 0 0 25 59Z"/><path d="M35 40h20m-6-6 6 6-6 6"/></svg><h3>Cloud</h3><p><span class="pro-badge"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 3 2 6 6 2-6 2-2 6-2-6-6-2 6-2Zm10-2 1 3 3 1-3 1-1 3-1-3-3-1 3-1Z"/></svg>Pro</span></p></div><div class="route-link"><span>Internet</span><div aria-hidden="true"></div></div><div class="route-stop"><svg viewBox="0 0 90 80" aria-hidden="true"><path d="M11 11h68v47H11zM45 58v11M29 70h32M21 22h48M21 32h28M21 42h15"/></svg><h3>Computer</h3><p>Companion app</p></div>
+        </div>
+        <div class="route" role="group" aria-label="Local path: Transmitter via LoRa to Receiver, then to Computer">
+          <div class="route-stop"><svg viewBox="0 0 70 80" aria-hidden="true"><path d="M20 24V4M19 24h32a5 5 0 0 1 5 5v42a5 5 0 0 1-5 5H19a5 5 0 0 1-5-5V29a5 5 0 0 1 5-5ZM25 35h20v20H25ZM47 24v-8h7v8M26 65h17"/></svg><h3>Transmitter</h3><p>In your hand</p></div><div class="route-link"><span>LoRa</span><div aria-hidden="true"></div></div><div class="route-stop"><svg viewBox="0 0 70 80" aria-hidden="true"><path d="M20 24V4M19 24h32a5 5 0 0 1 5 5v42a5 5 0 0 1-5 5H19a5 5 0 0 1-5-5V29a5 5 0 0 1 5-5ZM25 35h20v20H25ZM47 24v-8h7v8M26 65h17"/></svg><h3>Receiver</h3><p>Near your computer</p></div><div class="route-link"><span>Output</span><div aria-hidden="true"></div></div><div class="route-stop"><svg viewBox="0 0 90 80" aria-hidden="true"><path d="M11 11h68v47H11zM45 58v11M29 70h32M21 22h48M21 32h28M21 42h15"/></svg><h3>Computer</h3><p>Keyboard / OSC</p></div>
+        </div>
+      </div>
+      </div>
+      <div id="advanced-diagram" role="tabpanel" aria-labelledby="advanced-tab" tabindex="0" hidden>
+        <div class="network-heading"><h3>Many clickers. Many destinations.</h3><span class="pro-badge"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 3 2 6 6 2-6 2-2 6-2-6-6-2 6-2Zm10-2 1 3 3 1-3 1-1 3-1-3-3-1 3-1Z"/></svg>Pro</span></div>
+        <p class="network-intro">Send each clicker to one or more Cloud Channels. Each channel delivers cues to its connected clients.</p>
+        <div class="network" role="group" aria-label="Multiple physical transmitters, phone and browser clickers send to Cloud Channels, which deliver to multiple Companion apps and browser cue displays.">
+          <div class="network-column"><h4>Transmitters</h4><div class="network-node"><svg viewBox="0 0 32 40" aria-hidden="true"><path d="M8 10V1M6 10h20v27H6zM11 16h10v10H11zM12 32h8"/></svg><div><strong>M5 clickers</strong><span>Physical devices · Wi-Fi</span></div></div><div class="network-node"><svg viewBox="0 0 32 40" aria-hidden="true"><rect x="6" y="2" width="20" height="36" rx="3"/><path d="M13 6h6M14 33h4"/></svg><div><strong>Phone clickers</strong><span>Mobile app</span></div></div><div class="network-node"><svg viewBox="0 0 40 40" aria-hidden="true"><rect x="3" y="5" width="34" height="30" rx="2"/><path d="M3 13h34M8 9h1m4 0h1M15 21l-4 4 4 4m10-8 4 4-4 4"/></svg><div><strong>Web clickers</strong><span>Browser clients</span></div></div></div>
+          <svg class="network-bus" viewBox="0 0 80 228" preserveAspectRatio="none" aria-hidden="true"><path d="M0 38H40V190H0M0 114H80M40 38H80"/></svg>
+          <div class="network-column network-channels"><h4>Cloud Channels</h4><div class="channel-node">Channel A</div><div class="channel-node">Channel B</div><p>Choose one or more</p></div>
+          <svg class="network-bus" viewBox="0 0 80 228" preserveAspectRatio="none" aria-hidden="true"><path d="M0 38H80M0 114H40M40 38V190H80M40 114H80"/></svg>
+          <div class="network-column"><h4>Receiving clients</h4><div class="network-node"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M3 5h34v24H3zM20 29v7M12 37h16"/></svg><div><strong>Desktop Companions</strong><span>Keyboard / OSC outputs</span></div></div><div class="network-node"><svg viewBox="0 0 32 40" aria-hidden="true"><rect x="6" y="2" width="20" height="36" rx="3"/><path d="M13 6h6M14 33h4"/></svg><div><strong>Phone / tablet displays</strong><span>Live cues in a browser</span></div></div><div class="network-node"><svg viewBox="0 0 40 40" aria-hidden="true"><rect x="3" y="5" width="34" height="30" rx="2"/><path d="M3 13h34M8 9h1m4 0h1M15 21l-4 4 4 4m10-8 4 4-4 4"/></svg><div><strong>Browser displays</strong><span>Live cues on any computer</span></div></div></div>
+        </div>
+        <p class="network-note">Up to eight listeners per channel. Each Companion listens to one channel at a time.</p>
+        <div class="network-heading"><h3>Multiple devices. Local control.</h3><span class="local-label">Free</span></div>
+        <div class="network local-network" role="group" aria-label="Multiple physical M5 transmitters broadcast via LoRa to multiple physical M5 receivers, which output to computers.">
+          <div class="network-column"><h4>Transmitters</h4><div class="network-node"><svg viewBox="0 0 32 40" aria-hidden="true"><path d="M8 10V1M6 10h20v27H6zM11 16h10v10H11zM12 32h8"/></svg><div><strong>M5 transmitter A</strong><span>Physical clicker</span></div></div><div class="network-node"><svg viewBox="0 0 32 40" aria-hidden="true"><path d="M8 10V1M6 10h20v27H6zM11 16h10v10H11zM12 32h8"/></svg><div><strong>M5 transmitter B</strong><span>Physical clicker</span></div></div></div>
+          <svg class="network-bus" viewBox="0 0 80 152" preserveAspectRatio="none" aria-hidden="true"><path d="M0 38H40V114H0M40 76H80"/></svg>
+          <div class="network-column network-channels"><h4>LoRa</h4><div class="channel-node">Local broadcast</div><p>No internet needed</p></div>
+          <svg class="network-bus" viewBox="0 0 80 152" preserveAspectRatio="none" aria-hidden="true"><path d="M0 76H40M40 38H80M40 38V114H80"/></svg>
+          <div class="network-column"><h4>Receivers</h4><div class="network-node"><svg viewBox="0 0 32 40" aria-hidden="true"><path d="M8 10V1M6 10h20v27H6zM11 16h10v10H11zM12 32h8"/></svg><div><strong>M5 receiver A</strong><span>Keyboard / OSC → computer</span></div></div><div class="network-node"><svg viewBox="0 0 32 40" aria-hidden="true"><path d="M8 10V1M6 10h20v27H6zM11 16h10v10H11zM12 32h8"/></svg><div><strong>M5 receiver B</strong><span>Keyboard / OSC → computer</span></div></div></div>
+        </div>
+        <p class="network-note">Each receiver listens to its selected transmitter. Multiple receivers can listen to the same transmitter.</p>
+      </div>
+      <p class="connection-note">Need a direct connection? Use OSC, BLE MIDI, UDP or TCP from a single transmitter.</p>
     </section>
     <section id="cloud" class="cloud-section wrap section-space" aria-labelledby="cloud-heading">
-      <div class="section-heading"><h2 id="cloud-heading">Cloud Channels</h2><p>M5s, phones and web clickers send clicks to a channel. Client Companions listen and run their outputs.</p></div>
-      <div class="cloud-layout"><div class="cloud-story"><h3>Clickers → Channel → Client Companions</h3><p>Link your clicker with the code it displays, then choose its Cloud Channel. Tap a clicker in your account to choose one or more channels. Up to eight Client Companions can listen to each channel.</p><p>Listeners need an internet connection and an awake computer.</p></div><div class="cloud-price"><h3>UberClicker Pro</h3><p class="price-amount">$3<span> AUD / month</span></p><p>or <strong>$25 AUD / year</strong></p><p>Your first month is free.</p><a class="button primary" href="https://app.uberclicker.com">Open account</a><p class="cloud-terms">Per channel, with multiple clickers and Client Companions. Payment method required. Renews automatically after the trial; cancel before renewal in billing.</p></div></div>
-      <div class="direct-output"><div><h3>Local control stays free.</h3><p>USB configuration, LoRa, Bluetooth keyboard/MIDI and local network outputs do not need a Pro subscription. Your hardware stays yours.</p></div><a class="text-link" href="https://app.uberclicker.com/#configure">Configure your device</a></div>
+      <div class="section-heading"><h2 id="cloud-heading">Cloud Channels</h2><p>Send cues from a clicker or phone to computers anywhere.</p></div>
+      <div class="cloud-layout">
+        <div class="cloud-story"><h3>Your cue. Wherever you are.</h3><p>Link your clicker, choose a channel, and open the Companion app on your computer. Connect up to eight Companions per channel.</p><p>Cloud control needs an internet connection and an awake computer.</p><p><strong>Local control stays free.</strong> LoRa, Bluetooth and local network outputs need no subscription.</p></div>
+        <div class="cloud-price">
+          <h3>UberClicker Pro</h3>
+          <div class="currency-picker" id="currency-picker" hidden><label for="price-currency">Currency</label><select id="price-currency" aria-describedby="exchange-note"></select></div>
+          <div id="price-display" aria-live="polite" aria-atomic="true">
+            <p class="price-amount"><strong id="annual-price">$25</strong><span><span id="price-code">AUD</span> / year</span></p>
+            <p class="exchange-note" id="exchange-note">Billed in AUD.</p>
+          </div>
+          <p>Your first month is free.</p><a class="button primary" href="https://app.uberclicker.com">Open account</a>
+          <p class="cloud-terms">Per channel. Payment method required. Renews automatically after the trial; cancel before renewal in billing.</p>
+        </div>
+      </div>
+    </section>
+    <section id="downloads" class="buy-section wrap" aria-labelledby="downloads-heading">
+      <div class="buy-heading"><div><h2 id="downloads-heading">Download Companion</h2><p>Receive Cloud Channel cues as keyboard and OSC actions on your computer.</p></div></div>
+      <ul class="buy-options" aria-label="Desktop Companion downloads">
+        <li><a href="https://github.com/Baralabite/uberclicker/releases?q=companion-build"><span><strong>Download for macOS</strong><small>Apple silicon &amp; Intel · .dmg</small></span><span aria-hidden="true">↗</span></a></li>
+        <li><a href="https://github.com/Baralabite/uberclicker/releases?q=companion-build"><span><strong>Download for Windows</strong><small>x64 · .exe installer</small></span><span aria-hidden="true">↗</span></a></li>
+        <li><a href="https://github.com/Baralabite/uberclicker/releases?q=companion-build"><span><strong>Download for Linux</strong><small>x64 · .deb or .AppImage</small></span><span aria-hidden="true">↗</span></a></li>
+      </ul>
+      <p class="buy-note">Links open GitHub Releases. Choose the latest Companion preview and expand Assets for your installer. Preview builds are unsigned; your operating system may show a security warning or block installation.</p>
     </section>
     <section id="interface" class="interface-section" aria-labelledby="interface-heading"><div class="wrap interface-layout">
-      <div class="interface-copy"><h2 id="interface-heading">On the device</h2><p>An e-paper display shows your device name, outputs and nearby transmitters.</p><p class="dim">Try a simulated broadcast below. Receiver delivery cannot be confirmed. <a class="text-link" href="device-preview.html">Review the actual firmware screens</a>.</p></div>
+      <div class="interface-copy"><h2 id="interface-heading">On the device</h2><p>An e-paper display shows your device name, outputs and nearby transmitters.</p><p class="dim">Try the interactive demo. <a class="text-link" href="device-preview.html">Explore the device screens</a>.</p></div>
       <div class="interface-demo"><div class="screen-surround"><div class="epaper" data-logical-size="200x200"><div class="screen-top"><strong>LORA TX</strong><span aria-label="Illustrative battery bars">▮▮▮▯</span></div><div class="screen-profile">Presenter</div><div class="screen-ack" id="last-action">No action yet</div><div class="screen-receipt" id="last-receipt">No broadcast yet</div><div class="screen-footer"><span>◀ Previous</span><span>Next ▶</span></div><div class="screen-menu">Both: menu</div></div></div><div class="demo-controls"><button type="button" id="previous-cue" aria-label="Preview Previous action">◀</button><span>Try an action</span><button type="button" id="next-cue" aria-label="Preview Next action">▶</button></div><p id="action-feedback" class="sr-only" aria-live="polite">No sample action yet</p></div>
     </div></section>
     <section id="configure" class="configure-section wrap section-space" aria-labelledby="configure-heading">
       <div class="section-heading"><h2 id="configure-heading">Device setup</h2><p>Connect each transmitter or receiver by USB. No account required.</p></div>
-      <ol class="setup-steps"><li><h3>Connect by USB</h3><p>Use a data cable and open the setup app in desktop Chrome or Edge. Reading settings keeps cues running.</p></li><li><h3>Set your buttons</h3><p>Choose a name, button actions and Wi-Fi networks. Apply or cancel changes to resume cues.</p></li><li><h3>Connect your output</h3><p>Select a transmitter on each receiver with B1/B2. For Bluetooth keyboard or MIDI, use the device’s Bluetooth pairing menu.</p></li></ol>
+      <ol class="setup-steps"><li><h3>Connect by USB</h3><p>Plug in your device and open the setup app in desktop Chrome or Edge.</p></li><li><h3>Set your buttons</h3><p>Choose your button actions, device name and Wi-Fi network.</p></li><li><h3>Connect your output</h3><p>Choose a Cloud Channel, a LoRa transmitter, or pair over Bluetooth.</p></li></ol>
       <a class="button primary" href="https://app.uberclicker.com/#configure">Configure a device</a>
-      <details class="reset-note"><summary>Factory reset <span aria-hidden="true">+</span></summary><p>Use the device’s factory-reset menu to erase local settings, the selected transmitter, Bluetooth bonds and credentials. Firmware is preserved. Physical reset testing is pending.</p></details>
+      <details class="reset-note"><summary>Factory reset <span aria-hidden="true">+</span></summary><p>Use the device’s factory-reset menu to erase local settings, the selected transmitter, Bluetooth bonds and credentials. Firmware is preserved.</p></details>
     </section>
     <section id="buy" class="buy-section wrap" aria-labelledby="buy-heading">
       <div class="buy-heading"><div><h2 id="buy-heading">Buy hardware</h2><p>Shop for the Elecrow ThinkNode M5.</p></div><div class="buy-country"><label for="buy-country">Country / region</label><select id="buy-country" aria-controls="buy-results" aria-describedby="buy-note"><option value="buy-au" selected>Australia</option><option value="buy-nz">New Zealand</option><option value="buy-us">United States</option><option value="buy-eu">Europe</option></select></div></div>
@@ -85,12 +153,17 @@
         </ul>
       </div>
       <noscript><p>Country selection needs JavaScript. Showing retailers for Australia.</p></noscript>
-      <p id="buy-note" class="buy-note">Hardware only: these devices ship with Meshtastic. UberClicker firmware is experimental and not hardware-validated. Check the radio band, stock, shipping and taxes with the seller, especially for overseas orders. Links checked 29 October 2026; no affiliate links.</p>
+      <p id="buy-note" class="buy-note">These devices ship with Meshtastic. Install UberClicker after purchase. Check the radio band, shipping and taxes with the seller.</p>
     </section>
-    <section class="release-section"><div class="wrap release-inner"><div><h2>Experimental firmware</h2><p>Device UI review and physical hardware acceptance are pending. Validate your setup before a live show.</p></div><a class="button primary" href="flash/">Install firmware <span aria-hidden="true">↗</span></a></div></section>
+    <section id="feedback" class="buy-section wrap" aria-labelledby="feedback-heading">
+      <div class="buy-heading"><div><h2 id="feedback-heading">Want a feature? Found a bug?</h2><p>Share your ideas and report problems on GitHub.</p></div></div>
+      <a class="button primary" href="https://github.com/Baralabite/uberclicker/issues">GitHub Issues <span aria-hidden="true">↗</span></a>
+    </section>
   </main>
   <footer class="wrap site-footer"><a class="wordmark" href="#" translate="no">UberClicker</a><a class="footer-source" href="https://github.com/Baralabite/uberclicker">GitHub repository</a><span>Open source · <a href="https://github.com/Baralabite/uberclicker/blob/main/LICENSE">MIT licensed</a></span></footer>
   <script src="app.js" defer></script>
   <script type="module" src="device.js"></script>
+  <script type="module" src="pricing.mjs"></script>
+  <script type="module" src="diagram.mjs"></script>
 </body>
 </html>

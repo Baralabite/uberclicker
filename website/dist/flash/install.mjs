@@ -8,10 +8,10 @@ let entries = [], verified, session, busy = false, writing = false;
 const status = message => { $('status').textContent = message; };
 function log(message) { $('log').textContent = ($('log').textContent + message + '\n').slice(-16000); }
 function controls() {
-  $('connect').disabled = !supported || busy || !!session || $('board').value !== BOARD || !$('release').value || !$('experimental-consent').checked || ($('mode').value === 'erase' && !$('erase-consent').checked);
+  $('connect').disabled = !supported || busy || !!session || $('board').value !== BOARD || !$('release').value || ($('mode').value === 'erase' && !$('erase-consent').checked);
   $('write').disabled = busy || !session?.ready;
   $('disconnect').disabled = busy || !session;
-  for (const id of ['board', 'channel', 'release', 'mode', 'erase-consent', 'experimental-consent']) $(id).disabled = busy || !!session || (id === 'release' && !entries.some(e => e.channel === $('channel').value));
+  for (const id of ['board', 'channel', 'release', 'mode', 'erase-consent']) $(id).disabled = busy || !!session || (id === 'release' && !entries.some(e => e.channel === $('channel').value));
 }
 async function bytes(url) {
   const response = await fetch(url, { cache: 'no-cache' });
@@ -26,7 +26,7 @@ function versions() {
   const available = entries.filter(e => e.channel === $('channel').value);
   $('release').replaceChildren(...available.map(e => new Option(e.version, e.version)));
   if (!available.length) $('release').add(new Option('No published releases in this channel', ''));
-  $('release-detail').textContent = available.length ? 'Published experimental candidates. Device review and physical acceptance remain required.' : 'No published releases in this channel. No firmware has been fabricated for this installer.';
+  $('release-detail').textContent = available.length ? 'Choose a firmware version to install.' : 'No published releases in this channel. Choose another channel.';
   controls();
 }
 async function close() {
@@ -36,7 +36,7 @@ async function close() {
 }
 $('support').textContent = supported ? 'Web Serial available. A port opens only after you choose Connect.' : 'This browser cannot flash over Web Serial. Use desktop Chrome or Edge on HTTPS, or the command-line recovery instructions. iPhone/iPad browsers are unsupported.';
 $('channel').addEventListener('change', versions);
-for (const id of ['board', 'release', 'mode', 'erase-consent', 'experimental-consent']) $(id).addEventListener('change', controls);
+for (const id of ['board', 'release', 'mode', 'erase-consent']) $(id).addEventListener('change', controls);
 $('connect').addEventListener('click', async () => {
   busy = true; controls(); $('progress').value = 0;
   try {
@@ -65,7 +65,7 @@ $('write').addEventListener('click', async () => {
       status(`Writing image ${index + 1}/${verified.files.length}: ${Math.floor(written / total * 100)}%. Read-back verification follows.`);
     });
     $('progress').value = 100;
-    status('Write and SHA-256 read-back verification complete. Device reset requested. Hardware behavior still needs acceptance testing.');
+    status('Write and SHA-256 read-back verification complete. Device reset requested.');
   } catch (error) { status(`Write failed: ${error.message} Keep the device powered, reconnect in bootloader mode and reinstall. No automatic retry.`); }
   finally { writing = false; await close(); busy = false; controls(); }
 });
